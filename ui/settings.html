@@ -620,16 +620,29 @@
     // ---- Background image (keypad only) ----
     bgChooseButton.addEventListener("click", () => bgFile.click());
 
-    bgFile.addEventListener("change", () => {
+    bgFile.addEventListener("change", async () => {
       const file = bgFile.files && bgFile.files[0];
       bgFile.value = "";
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onerror = () => updateStatus("Could not read that image.");
-      reader.onload = () => {
+      updateStatus("Processing image…";
+
+      try {
+        // Use Blob.text() if available, else FileReader
+        let fileData;
+        if (file.arrayBuffer && file.stream) {
+          const buf = await file.arrayBuffer();
+          fileData = new Uint8Array(buf);
+        } else {
+          fileData = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(new Uint8Array(reader.result));
+            reader.onerror = () => reject(new Error("Could not read file"));
+            reader.readAsArrayBuffer(file);
+          });
+        }
+
         const img = new Image();
-        img.onerror = () => updateStatus("That file is not a valid image.");
         img.onload = () => {
           // Center-crop to a 144x144 square and re-encode so it stays well under the size limit.
           const size = 144;
@@ -648,9 +661,15 @@
           sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
           updateStatus("Applying background…");
         };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
+        img.onerror = () => updateStatus("That file is not a valid image.");
+
+        // Create blob URL for img.src
+        const blob = new Blob([fileData], { type: file.type });
+        img.src = URL.createObjectURL(blob);
+
+      } catch (error) {
+        updateStatus("Error reading image: " + error.message);
+      }
     });
 
     bgResetButton.addEventListener("click", () => {
