@@ -269,6 +269,7 @@
     <input id="slotDate" type="datetime-local" step="60">
 
     <div class="row" id="slotButtons">
+      <button id="updateSlotButton" type="button">Update</button>
       <button id="addSlotButton" type="button">Add new</button>
       <button id="deleteSlotButton" type="button">Delete</button>
     </div>
@@ -331,6 +332,7 @@
     const slotSelect = $("slotSelect");
     const slotName = $("slotName");
     const slotDate = $("slotDate");
+    const updateSlotButton = $("updateSlotButton");
     const addSlotButton = $("addSlotButton");
     const deleteSlotButton = $("deleteSlotButton");
     const deleteWarning = $("deleteWarning");
@@ -444,6 +446,19 @@
       deleteWarning.classList.add("hidden");
       $("slotButtons").classList.remove("hidden");
     }
+
+    updateSlotButton.addEventListener("click", () => {
+      if (countdownSlots.length === 0) return;
+      const fields = readSlotFields(true);
+      if (!fields) return;
+      sendCommand({
+        command: "saveCountdownSlot",
+        index: Number(slotSelect.value),
+        name: fields.name,
+        targetDate: fields.targetDate
+      });
+      addStatus("Countdown updated.", "success");
+    });
 
     deleteSlotButton.addEventListener("click", () => {
       if (countdownSlots.length === 0) return;
@@ -618,7 +633,7 @@
       return { name: slotName.value.trim(), targetDate: date.toISOString() };
     }
 
-    function applySlotEdit() {
+    slotName.addEventListener("change", () => {
       if (countdownSlots.length === 0) return;
       const fields = readSlotFields(false);
       if (!fields) return;
@@ -628,10 +643,19 @@
         name: fields.name,
         targetDate: fields.targetDate
       });
-    }
+    });
 
-    slotName.addEventListener("change", applySlotEdit);
-    slotDate.addEventListener("change", applySlotEdit);
+    slotDate.addEventListener("change", () => {
+      if (countdownSlots.length === 0) return;
+      const fields = readSlotFields(false);
+      if (!fields) return;
+      sendCommand({
+        command: "saveCountdownSlot",
+        index: Number(slotSelect.value),
+        name: fields.name,
+        targetDate: fields.targetDate
+      });
+    });
 
     addSlotButton.addEventListener("click", () => {
       const fields = readSlotFields(true);
