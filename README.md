@@ -73,4 +73,5 @@ If left empty, the countdown simply shows zero.
 - If you want multiple units in one display, use the **Countdown** action.
 
 ## Examples
+![Plugin demo](imgs/example2.gif)
 ![Plugin demo](imgs/example1.gif)
