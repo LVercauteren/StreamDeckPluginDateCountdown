@@ -362,6 +362,7 @@
 
     function updateStatus(message) {
       if (statusEl) statusEl.textContent = message;
+      console.log("[Status]", message);
     }
 
     function isKeypad() {
@@ -620,56 +621,86 @@
     // ---- Background image (keypad only) ----
     bgChooseButton.addEventListener("click", () => bgFile.click());
 
-    bgFile.addEventListener("change", async () => {
+    bgFile.addEventListener("change", () => {
       const file = bgFile.files && bgFile.files[0];
       bgFile.value = "";
-      if (!file) return;
-
-      updateStatus("Processing image…";
-
-      try {
-        // Use Blob.text() if available, else FileReader
-        let fileData;
-        if (file.arrayBuffer && file.stream) {
-          const buf = await file.arrayBuffer();
-          fileData = new Uint8Array(buf);
-        } else {
-          fileData = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(new Uint8Array(reader.result));
-            reader.onerror = () => reject(new Error("Could not read file"));
-            reader.readAsArrayBuffer(file);
-          });
-        }
-
-        const img = new Image();
-        img.onload = () => {
-          // Center-crop to a 144x144 square and re-encode so it stays well under the size limit.
-          const size = 144;
-          const canvas = document.createElement("canvas");
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext("2d");
-          const side = Math.min(img.width, img.height);
-          const sx = (img.width - side) / 2;
-          const sy = (img.height - side) / 2;
-          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-          bgPreview.src = dataUrl;
-          bgPreview.classList.remove("hidden");
-          sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
-          updateStatus("Applying background…");
-        };
-        img.onerror = () => updateStatus("That file is not a valid image.");
-
-        // Create blob URL for img.src
-        const blob = new Blob([fileData], { type: file.type });
-        img.src = URL.createObjectURL(blob);
-
-      } catch (error) {
-        updateStatus("Error reading image: " + error.message);
+      if (!file) {
+        updateStatus("No file selected.");
+        return;
       }
+
+      console.log("[bgFile.change] File selected:", file.name, "Type:", file.type, "Size:", file.size);
+      updateStatus("Processing image…");
+
+      const reader = new FileReader();
+      
+      reader.onerror = (e) => {
+        console.error("[FileReader] Error:", e);
+        updateStatus("Could not read that image.");
+      };
+
+      reader.onload = () => {
+        try {
+          console.log("[FileReader.onload] Data loaded, length:", reader.result.length);
+          
+          const img = new Image();
+          
+          img.onload = () => {
+            console.log("[Image.onload] Image loaded successfully, dimensions:", img.width, "x", img.height);
+            
+            try {
+              // Center-crop to 144x144 and re-encode.
+              const size = 144;
+              const canvas = document.createElement("canvas");
+              canvas.width = size;
+              canvas.height = size;
+              const ctx = canvas.getContext("2d");
+              
+              if (!ctx) {
+                updateStatus("Canvas error: could not get 2D context.");
+                return;
+              }
+              
+              const side = Math.min(img.width, img.height);
+              const sx = (img.width - side) / 2;
+              const sy = (img.height - side) / 2;
+              ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+              
+              const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+              console.log("[Canvas] Data URL created, length:", dataUrl.length);
+              
+              bgPreview.src = dataUrl;
+              bgPreview.classList.remove("hidden");
+              console.log("[Preview] Preview image set");
+              
+              sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
+              updateStatus("Applying background…");
+            } catch (e) {
+              console.error("[Image processing] Error:", e);
+              updateStatus("Error processing image: " + e.message);
+            }
+          };
+          
+          img.onerror = (e) => {
+            console.error("[Image.onerror] Error loading image:", e);
+            updateStatus("That file is not a valid image.");
+          };
+          
+          img.onabort = () => {
+            console.error("[Image.onabort] Image load aborted");
+            updateStatus("Image load aborted.");
+          };
+          
+          console.log("[Image] Setting src to data URL");
+          img.src = reader.result;
+          
+        } catch (e) {
+          console.error("[FileReader.onload] Exception:", e);
+          updateStatus("Error: " + e.message);
+        }
+      };
+      
+      reader.readAsDataURL(file);
     });
 
     bgResetButton.addEventListener("click", () => {
