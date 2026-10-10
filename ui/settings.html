@@ -180,8 +180,7 @@
     </div>
     <button id="saveAllButton" type="button">Save</button>
 
-    <!--div id="status">Connecting to Stream Deck…</div-->
-    <!--div id="debug" class="debug">Debug info will appear here</div-->
+    <div id="status">Connecting to Stream Deck…</div>
   </div>
 
   <script>
@@ -192,7 +191,7 @@
     let currentController = "Encoder";
 
     const input = document.getElementById("targetDate");
-    const status = document.getElementById("status");
+    const statusEl = document.getElementById("status");
     const debug = document.getElementById("debug");
     const colorSectionTitle = document.getElementById("colorSectionTitle");
 
@@ -212,11 +211,10 @@
       "com.wowforever.countdown.seconds": "Seconds"
     };
 
-    function addDebug(msg) {
-      if (!debug) return;
-      const timestamp = new Date().toLocaleTimeString();
-      debug.textContent += `[${timestamp}] ${msg}\n`;
-      debug.scrollTop = debug.scrollHeight;
+    function updateStatus(message) {
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
     }
 
     function toLocalInputValue(date) {
@@ -236,10 +234,6 @@
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
         return true;
-      }
-
-      if (debug) {
-        addDebug("Socket not open");
       }
       return false;
     }
@@ -296,7 +290,7 @@
             action: currentActionUUID
           }
         });
-        status.textContent = "Loading saved settings…";
+        updateStatus("Loading saved settings…");
       };
 
       socket.onmessage = function (event) {
@@ -337,13 +331,13 @@
 
           if (payload.targetDate) {
             showTarget(payload.targetDate);
-            status.textContent = "Settings loaded.";
+            updateStatus("Settings loaded.");
           }
         }
       };
 
       socket.onerror = function () {
-        status.textContent = "Could not connect. Close and reopen Stream Deck settings.";
+        updateStatus("Could not connect. Close and reopen Stream Deck settings.");
       };
     };
 
@@ -359,14 +353,14 @@
     saveAllButton.addEventListener("click", () => {
       console.log("WoW Forever Countdown: Save button clicked.");
       if (!input.value) {
-        status.textContent = "Please choose a date and time first.";
+        updateStatus("Please choose a date and time first.");
         return;
       }
 
       const chosenDate = new Date(input.value);
 
       if (Number.isNaN(chosenDate.getTime())) {
-        status.textContent = "That date and time is not valid.";
+        updateStatus("That date and time is not valid.");
         return;
       }
 
@@ -410,7 +404,7 @@
         }
       });
 
-      status.textContent = "Saving all settings…";
+      updateStatus("Saving all settings…");
     });
   </script>
 </body>
