@@ -4,150 +4,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
+
   <title>WoW Forever Countdown Settings</title>
   <style>
     * {
       box-sizing: border-box;
     }
 
+    html,
     body {
-      margin: 0;
-      padding: 10px 12px 10px 70px;
-      font-family: "Segoe UI", Arial, sans-serif;
-      font-size: 12px;
-      color: #d8d8dc;
-    }
-
-    .settings-content {
       width: 100%;
       margin: 0;
     }
 
-    .color-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 8px 0;
+    body {
+      padding: 4px 6px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 11px;
+      color: #d8d8dc;
+      background: #2d2d30;
     }
 
-    .color-row label {
+    .settings-content {
+      width: calc(100% - 76px);
+      height: 100%;
       margin: 0;
-      flex: 1;
-    }
-
-    .color-row input[type="color"] {
-      width: 42px;
-      min-width: 42px;
-      height: 28px;
-      min-height: 28px;
-      padding: 2px;
-      cursor: pointer;
+      padding: 0 6px 12px 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      transform: translateX(65px);
     }
 
     h3 {
-      margin: 0 0 10px;
-      font-size: 13px;
+      margin: 5px 0 4px;
+      font-size: 12px;
+      line-height: 1.25;
       font-weight: 600;
-      color: #e8e8eb;
+      color: #e0e0e0;
     }
 
     p {
-      margin: 0 0 14px;
-      color: #a4a5ab;
-      font-size: 11px;
-      line-height: 1.4;
+      margin: 0 0 6px;
+      color: #b8b8b8;
+      font-size: 10px;
+      line-height: 1.3;
     }
 
     label {
       display: block;
-      margin: 0 0 5px;
+      margin: 0 0 3px;
       color: #bfc0c6;
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.25;
     }
 
     input,
-    button,
-    select {
+    select,
+    button {
       width: 100%;
-      min-height: 29px;
-      padding: 5px 8px;
-      border-radius: 2px;
+      min-height: 23px;
+      padding: 3px 6px;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11px;
+      border-radius: 3px;
     }
 
     input,
     select {
       color: #eeeeef;
-      background: #38393e;
-      border: 1px solid #45464c;
+      background: #3a3a3d;
+      border: 1px solid #555558;
       color-scheme: dark;
-      outline: none;
     }
 
     input:focus,
     select:focus {
       border-color: #1684e8;
+      outline: none;
+    }
+
+    input[type="range"] {
+      min-height: 18px;
+      padding: 0;
+      margin: 0 0 3px;
+    }
+
+    input[type="color"] {
+      width: 34px;
+      min-width: 34px;
+      height: 22px;
+      min-height: 22px;
+      padding: 1px;
+      cursor: pointer;
     }
 
     button {
-      margin-top: 10px;
+      min-height: 23px;
+      margin-top: 5px;
       color: #eeeeef;
-      background: #3a3b40;
-      border: 1px solid #505158;
+      background: #414145;
+      border: 1px solid #5a5a5e;
       cursor: pointer;
     }
 
     button:hover {
-      background: #46474d;
+      background: #505055;
     }
 
     button:active {
       background: #303136;
     }
 
+    hr {
+      margin: 7px 0;
+      border: 0;
+      border-top: 1px solid #48494e;
+    }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin: 4px 0;
+    }
+
+    .color-row label {
+      flex: 1;
+      margin: 0;
+    }
+
     .button-row {
       display: flex;
-      gap: 8px;
-    }
-
-    .button-row button {
-      flex: 1;
-      margin-top: 0;
-    }
-
-    .button-row button:first-child {
-      margin-top: 10px;
+      gap: 6px;
     }
 
     #status {
-      margin-top: 9px;
+      margin-top: 5px;
       color: #92949b;
       font-size: 10px;
-      line-height: 1.4;
+      line-height: 1.3;
     }
   </style>
 </head>
 
 <body>
   <div class="settings-content">
-    <h3>Countdown Slot</h3>
-    <p>Select or manage countdown dates.</p>
+    <h3>Countdown</h3>
+    <p>Choose which countdown this button or dial shows.</p>
 
-    <label for="slotSelect">Selected countdown</label>
+    <label for="slotSelect">Countdown for this button</label>
     <select id="slotSelect"></select>
 
-    <div class="button-row">
-      <button id="addSlotButton" type="button">Add slot</button>
-      <button id="deleteSlotButton" type="button">Delete slot</button>
-    </div>
-
-    <label for="slotName" style="margin-top: 12px;">Slot name</label>
-    <input id="slotName" type="text" placeholder="Holiday">
-    <label for="slotDate" style="margin-top: 5px;">Slot date and time</label>
+    <label for="slotName" style="margin-top: 6px;">Name</label>
+    <input id="slotName" type="text" placeholder="e.g. Holiday">
+    <label for="slotDate" style="margin-top: 6px;">Target date and time</label>
     <input id="slotDate" type="datetime-local" step="60">
-    <button id="saveSlotButton" type="button">Save slot</button>
+
+    <div class="button-row">
+      <button id="saveSlotButton" type="button">Update</button>
+      <button id="addSlotButton" type="button">Add new</button>
+      <button id="deleteSlotButton" type="button">Delete</button>
+    </div>
 
     <hr>
     <h3>Countdown Font Size</h3>
@@ -155,7 +175,6 @@
     <input id="labelSize" type="range" min="12" max="28" value="18">
     <label for="numberSize" style="margin-top: 12px;">Number size: <span id="numberSizeValue">40</span> px</label>
     <input id="numberSize" type="range" min="12" max="54" value="40">
-    <button id="saveFontButton" type="button">Save font sizes</button>
 
     <hr>
     <h3 id="colorSectionTitle">Countdown Colors</h3>
@@ -171,9 +190,9 @@
       <label for="labelColor">Label color</label>
       <input id="labelColor" type="color" value="#D8D8DC">
     </div>
-    <button id="saveColorsButton" type="button">Save colors</button>
+    <button id="saveAllButton" type="button">Save</button>
 
-    <div id="status">Connecting to Stream Deck…</div>
+    <div id="status"></div>
   </div>
 
   <script>
@@ -181,25 +200,25 @@
     let pluginUUID;
     let currentActionUUID = null;
     let currentController = "Encoder";
+    let countdownSlots = [];
 
-    const status = document.getElementById("status");
+    const statusEl = document.getElementById("status");
     const slotSelect = document.getElementById("slotSelect");
     const slotName = document.getElementById("slotName");
     const slotDate = document.getElementById("slotDate");
+    const saveSlotButton = document.getElementById("saveSlotButton");
     const addSlotButton = document.getElementById("addSlotButton");
     const deleteSlotButton = document.getElementById("deleteSlotButton");
-    const saveSlotButton = document.getElementById("saveSlotButton");
     const colorSectionTitle = document.getElementById("colorSectionTitle");
 
     const labelSize = document.getElementById("labelSize");
     const numberSize = document.getElementById("numberSize");
     const labelSizeValue = document.getElementById("labelSizeValue");
     const numberSizeValue = document.getElementById("numberSizeValue");
-    const saveFontButton = document.getElementById("saveFontButton");
     const backgroundColor = document.getElementById("backgroundColor");
     const numberColor = document.getElementById("numberColor");
     const labelColor = document.getElementById("labelColor");
-    const saveColorsButton = document.getElementById("saveColorsButton");
+    const saveAllButton = document.getElementById("saveAllButton");
 
     const ACTION_NAMES = {
       "com.wowforever.countdown.days": "Days",
@@ -208,58 +227,50 @@
       "com.wowforever.countdown.seconds": "Seconds"
     };
 
-    let _countdownSlots = [];
-
     function updateStatus(message) {
-      if (status) {
-        status.textContent = message;
-      }
+      if (statusEl) statusEl.textContent = message;
     }
 
-    function toLocalDateTime(dateString) {
-      const date = new Date(dateString);
+    function toLocalInputValue(isoDate) {
+      const date = new Date(isoDate);
       if (Number.isNaN(date.getTime())) return "";
       const pad = n => String(n).padStart(2, "0");
-      return (
-        date.getFullYear() + "-" +
-        pad(date.getMonth() + 1) + "-" +
-        pad(date.getDate()) + "T" +
-        pad(date.getHours()) + ":" +
-        pad(date.getMinutes())
-      );
+      return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) +
+        "T" + pad(date.getHours()) + ":" + pad(date.getMinutes());
     }
 
-    function toLocalInputValue(date) {
-      const pad = n => String(n).padStart(2, "0");
-      return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes());
-    }
-
-    function setSlotOptions(slots) {
-      slotSelect.innerHTML = "";
-      if (!slots || slots.length === 0) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "No slots";
-        slotSelect.appendChild(option);
-        return;
+    function send(message) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(message));
+        return true;
       }
+      return false;
+    }
 
-      slots.forEach((slot, index) => {
+    function sendCommand(payload) {
+      return send({ event: "sendToPlugin", context: pluginUUID, payload });
+    }
+
+    function showSelectedSlotFields() {
+      const slot = countdownSlots[Number(slotSelect.value)];
+      slotName.value = slot ? slot.name || "" : "";
+      slotDate.value = slot ? toLocalInputValue(slot.targetDate) : "";
+    }
+
+    function renderSlots(slots, selectedIndex) {
+      countdownSlots = slots || [];
+      slotSelect.innerHTML = "";
+
+      countdownSlots.forEach((slot, index) => {
         const option = document.createElement("option");
         option.value = String(index);
         option.textContent = slot.name || `Slot ${index + 1}`;
         slotSelect.appendChild(option);
       });
 
-      if (slotSelect.options.length > 0) {
-        slotSelect.value = "0";
-      }
-    }
-
-    function send(message) {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(message));
-      }
+      const index = Number.isInteger(selectedIndex) ? selectedIndex : 0;
+      slotSelect.value = String(Math.min(Math.max(index, 0), Math.max(countdownSlots.length - 1, 0)));
+      showSelectedSlotFields();
     }
 
     window.connectElgatoStreamDeckSocket = function (port, uuid, registerEvent, info, actionInfo) {
@@ -286,17 +297,17 @@
 
       socket.onopen = function () {
         send({ event: registerEvent, uuid: pluginUUID });
-        send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getCountdownSlots" } });
-        send({
-          event: "sendToPlugin",
-          context: pluginUUID,
-          payload: {
-            command: "getFontSettings",
-            controller: currentController,
-            action: currentActionUUID
-          }
+        sendCommand({ command: "getCountdownSlots" });
+        sendCommand({
+          command: "getFontSettings",
+          controller: currentController,
+          action: currentActionUUID
         });
-        send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getColorSettings" } });
+        sendCommand({
+          command: "getColorSettings",
+          controller: currentController,
+          action: currentActionUUID
+        });
         updateStatus("Loading saved settings…");
       };
 
@@ -308,57 +319,49 @@
           return;
         }
 
-        if (message.event === "sendToPropertyInspector") {
-          const payload = message.payload || {};
+        if (message.event !== "sendToPropertyInspector") return;
+        const payload = message.payload || {};
 
-          if (payload.slots) {
-            _countdownSlots = payload.slots;
-            setSlotOptions(payload.slots);
+        if (payload.slots) {
+          renderSlots(payload.slots, payload.selectedIndex);
+          updateStatus("Settings loaded.");
+        }
 
-            if (payload.slots.length > 0) {
-              const selected = Number(slotSelect.value || 0);
-              const slot = payload.slots[selected];
-              if (slot) {
-                slotName.value = slot.name || "";
-                slotDate.value = toLocalDateTime(slot.targetDate || "");
-              }
-            }
+        if (payload.slotError) {
+          updateStatus(payload.slotError);
+        }
+
+        if (payload.dialColors && currentController !== "Keypad") {
+          backgroundColor.value = payload.dialColors.backgroundColor || "#111827";
+          numberColor.value = payload.dialColors.numberColor || "#FFFFFF";
+          labelColor.value = payload.dialColors.labelColor || "#D8D8DC";
+        }
+
+        if (payload.keypadColors && currentController === "Keypad") {
+          const selected = payload.keypadColors[currentActionUUID];
+          if (selected) {
+            backgroundColor.value = selected.backgroundColor || "#111827";
+            numberColor.value = selected.numberColor || "#FFFFFF";
+            labelColor.value = selected.labelColor || "#D8D8DC";
           }
+        }
 
-          if (payload.dialColors && currentController === "Encoder") {
-            backgroundColor.value = payload.dialColors.backgroundColor || "#111827";
-            numberColor.value = payload.dialColors.numberColor || "#FFFFFF";
-            labelColor.value = payload.dialColors.labelColor || "#D8D8DC";
-          }
+        if (payload.labelSize !== undefined) {
+          labelSize.value = payload.labelSize;
+          labelSizeValue.textContent = payload.labelSize;
+        }
 
-          if (payload.keypadColors && currentController === "Keypad") {
-            const selected = payload.keypadColors[currentActionUUID];
-            if (selected) {
-              backgroundColor.value = selected.backgroundColor || "#111827";
-              numberColor.value = selected.numberColor || "#FFFFFF";
-              labelColor.value = selected.labelColor || "#D8D8DC";
-            }
-          }
+        if (payload.numberSize !== undefined) {
+          numberSize.value = payload.numberSize;
+          numberSizeValue.textContent = payload.numberSize;
+        }
 
-          if (payload.labelSize !== undefined) {
-            labelSize.value = payload.labelSize;
-            labelSizeValue.textContent = payload.labelSize;
-          }
+        if (payload.fontSaved || payload.colorsSaved) {
+          updateStatus("Saved.");
+        }
 
-          if (payload.numberSize !== undefined) {
-            numberSize.value = payload.numberSize;
-            numberSizeValue.textContent = payload.numberSize;
-          }
-
-          if (payload.slotError) {
-            updateStatus("Error: " + payload.slotError);
-          }
-
-          if (payload.slots || payload.dialColors || payload.keypadColors || payload.labelSize !== undefined) {
-            if (!payload.slotError) {
-              updateStatus("Settings loaded.");
-            }
-          }
+        if (payload.colorsError) {
+          updateStatus(payload.colorsError);
         }
       };
 
@@ -375,118 +378,76 @@
       numberSizeValue.textContent = numberSize.value;
     });
 
+    // Picking a slot assigns it to this button immediately.
     slotSelect.addEventListener("change", () => {
-      const index = Number(slotSelect.value);
-      const selected = _countdownSlots?.[index];
-      if (!selected) return;
-
-      slotName.value = selected.name || "";
-      slotDate.value = toLocalDateTime(selected.targetDate || "");
+      showSelectedSlotFields();
+      sendCommand({ command: "selectCountdownSlot", index: Number(slotSelect.value) });
     });
 
+    function readSlotFields() {
+      if (!slotDate.value) {
+        updateStatus("Please choose a date and time first.");
+        return null;
+      }
+      const date = new Date(slotDate.value);
+      if (Number.isNaN(date.getTime())) {
+        updateStatus("That date and time is not valid.");
+        return null;
+      }
+      return { name: slotName.value.trim(), targetDate: date.toISOString() };
+    }
+
     saveSlotButton.addEventListener("click", () => {
-      const index = Number(slotSelect.value);
-      if (!_countdownSlots || !_countdownSlots[index]) {
-        return;
-      }
-
-      const name = slotName.value.trim() || `Slot ${index + 1}`;
-      const dateValue = slotDate.value;
-
-      if (!dateValue) {
-        updateStatus("Choose a date first.");
-        return;
-      }
-
-      const targetDate = new Date(dateValue).toISOString();
-
-      send({
-        event: "sendToPlugin",
-        context: pluginUUID,
-        payload: {
-          command: "saveCountdownSlot",
-          index,
-          name,
-          targetDate
-        }
+      const fields = readSlotFields();
+      if (!fields || countdownSlots.length === 0) return;
+      sendCommand({
+        command: "saveCountdownSlot",
+        index: Number(slotSelect.value),
+        name: fields.name,
+        targetDate: fields.targetDate
       });
-
-      updateStatus("Saving slot…");
+      updateStatus("Countdown updated.");
     });
 
     addSlotButton.addEventListener("click", () => {
-      const name = (slotName.value || "").trim() || `Slot ${(_countdownSlots?.length || 0) + 1}`;
-      const dateValue = slotDate.value;
-
-      if (!dateValue) {
-        updateStatus("Choose a date first.");
-        return;
-      }
-
-      const targetDate = new Date(dateValue).toISOString();
-
-      send({
-        event: "sendToPlugin",
-        context: pluginUUID,
-        payload: {
-          command: "addCountdownSlot",
-          name,
-          targetDate
-        }
+      const fields = readSlotFields();
+      if (!fields) return;
+      sendCommand({
+        command: "addCountdownSlot",
+        name: fields.name,
+        targetDate: fields.targetDate
       });
-
-      updateStatus("Adding slot…");
+      updateStatus("Countdown added.");
     });
 
     deleteSlotButton.addEventListener("click", () => {
-      const index = Number(slotSelect.value);
-      if (!_countdownSlots || !_countdownSlots[index]) {
-        return;
-      }
-
-      send({
-        event: "sendToPlugin",
-        context: pluginUUID,
-        payload: {
-          command: "deleteCountdownSlot",
-          index
-        }
-      });
-
-      updateStatus("Deleting slot…");
+      if (countdownSlots.length === 0) return;
+      sendCommand({ command: "deleteCountdownSlot", index: Number(slotSelect.value) });
+      updateStatus("Countdown deleted.");
     });
 
-    saveFontButton.addEventListener("click", () => {
-      send({
-        event: "sendToPlugin",
-        context: pluginUUID,
-        payload: {
-          command: "saveFontSettings",
-          action: currentActionUUID,
-          controller: currentController,
-          labelSize: Number(labelSize.value),
-          numberSize: Number(numberSize.value)
-        }
+    // Single Save button: font sizes + colors for this action.
+    saveAllButton.addEventListener("click", () => {
+      sendCommand({
+        command: "saveFontSettings",
+        action: currentActionUUID,
+        controller: currentController,
+        labelSize: Number(labelSize.value),
+        numberSize: Number(numberSize.value)
       });
-      updateStatus("Saving font sizes…");
-    });
 
-    saveColorsButton.addEventListener("click", () => {
-      send({
-        event: "sendToPlugin",
-        context: pluginUUID,
-        payload: {
-          command: "saveColorSettings",
-          action: currentActionUUID,
-          controller: currentController,
-          colors: {
-            backgroundColor: backgroundColor.value,
-            numberColor: numberColor.value,
-            labelColor: labelColor.value
-          }
+      sendCommand({
+        command: "saveColorSettings",
+        action: currentActionUUID,
+        controller: currentController,
+        colors: {
+          backgroundColor: backgroundColor.value,
+          numberColor: numberColor.value,
+          labelColor: labelColor.value
         }
       });
-      updateStatus("Saving colors…");
+
+      updateStatus("Saving…");
     });
   </script>
 </body>
