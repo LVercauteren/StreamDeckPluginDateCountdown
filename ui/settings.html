@@ -213,6 +213,7 @@
     };
 
     function addDebug(msg) {
+      if (!debug) return;
       const timestamp = new Date().toLocaleTimeString();
       debug.textContent += `[${timestamp}] ${msg}\n`;
       debug.scrollTop = debug.scrollHeight;
@@ -237,10 +238,9 @@
         return true;
       }
 
-      window.alert(
-        "WoW Forever Countdown: The settings connection is not open. Please close and reopen the settings panel."
-      );
-
+      if (debug) {
+        addDebug("Socket not open");
+      }
       return false;
     }
 
@@ -266,15 +266,9 @@
 
       if (currentActionUUID) {
         const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
-        if (currentActionUUID) {
-          const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
-          colorSectionTitle.textContent = `${actionName} Colors`;
-        } else if (currentController === "Encoder") {
-          colorSectionTitle.textContent = "Dials Colors";
-        }
-        addDebug("Updated title to: " + actionName + " Colors");
-      } else {
-        addDebug("Could not detect action UUID");
+        colorSectionTitle.textContent = `${actionName} Colors`;
+      } else if (currentController === "Encoder") {
+        colorSectionTitle.textContent = "Dials Colors";
       }
 
       socket = new WebSocket("ws://127.0.0.1:" + port);
@@ -363,7 +357,6 @@
 
 
     saveAllButton.addEventListener("click", () => {
-      window.alert("Save button clicked.");
       console.log("WoW Forever Countdown: Save button clicked.");
       if (!input.value) {
         status.textContent = "Please choose a date and time first.";
