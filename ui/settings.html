@@ -75,6 +75,19 @@
       font-size: 10px;
       line-height: 1.4;
     }
+    .debug {
+      background: #2a2b30;
+      padding: 8px;
+      margin-top: 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #a4a5ab;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   </style>
 </head>
 
@@ -112,6 +125,7 @@
     <button id="saveColorsButton" type="button">Save colors</button>
 
     <div id="status">Connecting to Stream Deck…</div>
+    <div id="debug" class="debug">Debug info will appear here</div>
   </div>
 
   <script>
@@ -120,10 +134,10 @@
     let savedTargetDate = null;
     let currentActionUUID = null;
     let currentController = "Encoder";
-    let parsedActionInfo = {};
 
     const input = document.getElementById("targetDate");
     const status = document.getElementById("status");
+    const debug = document.getElementById("debug");
     const saveButton = document.getElementById("saveButton");
     const colorSectionTitle = document.getElementById("colorSectionTitle");
 
@@ -143,6 +157,12 @@
       "com.wowforever.countdown.minutes": "Minutes",
       "com.wowforever.countdown.seconds": "Seconds"
     };
+
+    function addDebug(msg) {
+      const timestamp = new Date().toLocaleTimeString();
+      debug.textContent += `[${timestamp}] ${msg}\n`;
+      debug.scrollTop = debug.scrollHeight;
+    }
 
     function toLocalInputValue(date) {
       const pad = n => String(n).padStart(2, "0");
@@ -165,22 +185,47 @@
 
     window.connectElgatoStreamDeckSocket = function (port, uuid, registerEvent, info, actionInfo) {
       pluginUUID = uuid;
-      try {
-        parsedActionInfo = typeof actionInfo === "string" ? JSON.parse(actionInfo) : (actionInfo || {});
-      } catch {
-        parsedActionInfo = {};
+      
+      addDebug("===== INIT =====");
+      addDebug("uuid: " + JSON.stringify(uuid));
+      addDebug("registerEvent: " + JSON.stringify(registerEvent));
+      addDebug("info type: " + typeof info);
+      addDebug("actionInfo type: " + typeof actionInfo);
+      
+      if (typeof actionInfo === "string") {
+        try {
+          actionInfo = JSON.parse(actionInfo);
+          addDebug("actionInfo parsed from string");
+        } catch (e) {
+          addDebug("ERROR parsing actionInfo: " + e.message);
+        }
       }
-
-      if (parsedActionInfo && parsedActionInfo.action && parsedActionInfo.action.UUID) {
-        currentActionUUID = parsedActionInfo.action.UUID;
-        currentController = parsedActionInfo.controller || "Encoder";
-        const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
-        colorSectionTitle.textContent = `${actionName} Colors`;
+      
+      addDebug("actionInfo: " + JSON.stringify(actionInfo, null, 2));
+      
+      if (actionInfo) {
+        if (actionInfo.action && actionInfo.action.UUID) {
+          currentActionUUID = actionInfo.action.UUID;
+          currentController = actionInfo.controller || "Encoder";
+          addDebug("Set currentActionUUID: " + currentActionUUID);
+          addDebug("Set currentController: " + currentController);
+          
+          const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
+          colorSectionTitle.textContent = `${actionName} Colors`;
+          addDebug("Updated title to: " + actionName + " Colors");
+        } else {
+          addDebug("actionInfo.action.UUID not found");
+          addDebug("actionInfo.action: " + JSON.stringify(actionInfo.action));
+          addDebug("actionInfo.controller: " + JSON.stringify(actionInfo.controller));
+        }
+      } else {
+        addDebug("WARNING: actionInfo is null/undefined");
       }
 
       socket = new WebSocket("ws://127.0.0.1:" + port);
 
       socket.onopen = function () {
+        addDebug("WebSocket connected");
         send({ event: registerEvent, uuid: pluginUUID });
         send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getTargetDate" } });
         send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getFontSettings", controller: currentController, action: currentActionUUID } });
@@ -194,11 +239,13 @@
 
         if (message.event === "sendToPropertyInspector") {
           const payload = message.payload || {};
+          addDebug("Received payload: " + JSON.stringify(Object.keys(payload)));
 
           if (payload.dialColors && currentController === "Encoder") {
             backgroundColor.value = payload.dialColors.backgroundColor || "#111827";
             numberColor.value = payload.dialColors.numberColor || "#FFFFFF";
             labelColor.value = payload.dialColors.labelColor || "#D8D8DC";
+            addDebug("Loaded dial colors");
           }
 
           if (payload.keypadColors && currentController === "Keypad") {
@@ -207,30 +254,36 @@
               backgroundColor.value = selected.backgroundColor || "#111827";
               numberColor.value = selected.numberColor || "#FFFFFF";
               labelColor.value = selected.labelColor || "#D8D8DC";
+              addDebug("Loaded keypad colors for: " + currentActionUUID);
+            } else {
+              addDebug("No keypad colors found for: " + currentActionUUID);
+              addDebug("Available keys: " + JSON.stringify(Object.keys(payload.keypadColors)));
             }
           }
 
           if (payload.labelSize !== undefined) {
             labelSize.value = payload.labelSize;
             labelSizeValue.textContent = payload.labelSize;
+            addDebug("Loaded labelSize: " + payload.labelSize);
           }
 
           if (payload.numberSize !== undefined) {
             numberSize.value = payload.numberSize;
             numberSizeValue.textContent = payload.numberSize;
+            addDebug("Loaded numberSize: " + payload.numberSize);
           }
 
           if (payload.targetDate) {
-            requestAnimationFrame(() => {
-              showTarget(payload.targetDate);
-              status.textContent = "Settings loaded.";
-            });
+            showTarget(payload.targetDate);
+            status.textContent = "Settings loaded.";
+            addDebug("Loaded targetDate");
           }
         }
       };
 
       socket.onerror = function () {
         status.textContent = "Could not connect. Close and reopen Stream Deck settings.";
+        addDebug("WebSocket error");
       };
     };
 
@@ -243,6 +296,7 @@
     });
 
     saveFontButton.addEventListener("click", () => {
+      addDebug("SAVE FONT: action=" + currentActionUUID + " controller=" + currentController);
       send({
         event: "sendToPlugin",
         context: pluginUUID,
@@ -258,6 +312,7 @@
     });
 
     saveColorsButton.addEventListener("click", () => {
+      addDebug("SAVE COLORS: action=" + currentActionUUID + " controller=" + currentController);
       send({
         event: "sendToPlugin",
         context: pluginUUID,
