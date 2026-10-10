@@ -30,9 +30,22 @@ const PARTS = {
 // Countdown slots (global list, each button/dial picks one by index)
 // ---------------------------------------------------------------------------
 
+// "local" means the machine's own time zone; otherwise an IANA name.
+function normalizeTimeZone(timeZone) {
+  if (typeof timeZone !== "string" || !timeZone || timeZone === "local") {
+    return "local";
+  }
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone });
+    return timeZone;
+  } catch {
+    return "local";
+  }
+}
+
 function defaultSlots() {
   return [
-    { name: "Countdown", targetDate: new Date(DEFAULT_TARGET_MS).toISOString() }
+    { name: "Countdown", targetDate: new Date(DEFAULT_TARGET_MS).toISOString(), timeZone: "local" }
   ];
 }
 
@@ -50,7 +63,8 @@ function loadCountdownSlots() {
         )
         .map((slot, i) => ({
           name: String(slot.name || "").trim() || `Slot ${i + 1}`,
-          targetDate: new Date(Date.parse(slot.targetDate)).toISOString()
+          targetDate: new Date(Date.parse(slot.targetDate)).toISOString(),
+          timeZone: normalizeTimeZone(slot.timeZone)
         }));
       if (valid.length > 0) {
         COUNTDOWN_SLOTS = valid;
@@ -420,7 +434,11 @@ function handleMessage(raw) {
         });
       } else {
         const name = String(payload.name || "").trim() || `Slot ${COUNTDOWN_SLOTS.length + 1}`;
-        COUNTDOWN_SLOTS.push({ name, targetDate: new Date(ms).toISOString() });
+        COUNTDOWN_SLOTS.push({
+          name,
+          targetDate: new Date(ms).toISOString(),
+          timeZone: normalizeTimeZone(payload.timeZone)
+        });
         saveCountdownSlots();
 
         // Make this button use the newly created slot.
@@ -454,7 +472,8 @@ function handleMessage(raw) {
       } else {
         COUNTDOWN_SLOTS[index] = {
           name: String(payload.name || "").trim() || `Slot ${index + 1}`,
-          targetDate: new Date(ms).toISOString()
+          targetDate: new Date(ms).toISOString(),
+          timeZone: normalizeTimeZone(payload.timeZone)
         };
         saveCountdownSlots();
         updateAll();
