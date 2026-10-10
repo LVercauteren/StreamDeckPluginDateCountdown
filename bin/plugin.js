@@ -28,9 +28,6 @@ const PARTS = {
 };
 
 const UNIT_ORDER = ["days", "hours", "minutes", "seconds"];
-const UNIT_SECONDS = { days: 86400, hours: 3600, minutes: 60, seconds: 1 };
-const UNIT_LABELS = { days: "DAYS", hours: "HOURS", minutes: "MINUTES", seconds: "SECONDS" };
-const UNIT_SHORT_LABELS = { days: "DAYS", hours: "HRS", minutes: "MIN", seconds: "SEC" };
 const MAX_REACHED_TEXT = 20;
 
 // Legacy actions always show their single unit; the custom action defaults to all four.
@@ -659,43 +656,36 @@ function valuesForTarget(targetMs) {
   };
 }
 
-function valuesForUnits(targetMs, units) {
-  let rest = Math.floor(Math.max(0, targetMs - Date.now()) / 1000);
-  const values = {};
-  for (const unit of UNIT_ORDER) {
-    if (!units.includes(unit)) continue;
-    values[unit] = Math.floor(rest / UNIT_SECONDS[unit]);
-    rest -= values[unit] * UNIT_SECONDS[unit];
-  }
-  return values;
+// Each selected unit shows its own component (days total, hours 0-23, minutes/seconds 0-59).
+function rowsForUnits(values, units) {
+  const pad = units.length > 1;
+  return units.map(u => ({
+    number: u !== "days" && pad ? String(values[u]).padStart(2, "0") : String(values[u]),
+    suffix: u[0]
+  }));
 }
 
-// e.g. "12d 03:45:10", "12d 03h", "36:20" or just "5" for a single unit.
-function formatUnits(values, units) {
-  const pad = n => String(n).padStart(2, "0");
-  if (units.length === 1) return String(values[units[0]]);
-
-  const hasDays = units[0] === "days";
-  const rest = hasDays ? units.slice(1) : units;
-  const idx = rest.map(u => UNIT_ORDER.indexOf(u));
-  const contiguous = rest.length >= 2 && idx.every((v, i) => i === 0 || v === idx[i - 1] + 1);
-  const parts = [];
-
-  if (hasDays) parts.push(`${values.days}d`);
-  if (contiguous) {
-    parts.push(rest.map((u, i) => (i === 0 && !hasDays ? String(values[u]) : pad(values[u]))).join(":"));
-  } else {
-    rest.forEach((u, i) => {
-      const v = i === 0 && !hasDays ? String(values[u]) : pad(values[u]);
-      parts.push(`${v}${u[0]}`);
-    });
-  }
-  return parts.join(" ");
-}
-
-function labelForUnits(units) {
-  if (units.length === 1) return UNIT_LABELS[units[0]];
-  return units.map(u => UNIT_SHORT_LABELS[u]).join(" : ");
+// Stacked keypad rows, vertically centered; digits right-aligned so they line up in a column.
+function stackedRowsSvg(rows, colors, font) {
+  const n = rows.length;
+  const areaTop = 8, areaHeight = 128, maxWidth = 124;
+  const rowHeight = areaHeight / n;
+  const digits = Math.max(...rows.map(r => r.number.length));
+  const widthFor = size => {
+    const suffix = Math.max(10, Math.round(size * 0.55));
+    return { suffix, num: digits * size * 0.62, total: digits * size * 0.62 + 4 + suffix * 0.62 };
+  };
+  let size = Math.max(10, Math.min(font.numberSize, 54, Math.floor(rowHeight * 0.8)));
+  while (size > 10 && widthFor(size).total > maxWidth) size--;
+  const w = widthFor(size);
+  const suffixSize = Math.min(w.suffix, Math.max(10, font.labelSize));
+  const startX = Math.round((144 - w.total) / 2);
+  const numberX = Math.round(startX + w.num);
+  return rows.map((r, i) => {
+    const y = Math.round(areaTop + rowHeight * i + rowHeight / 2 + size * 0.35);
+    return `<text x="${numberX}" y="${y}" text-anchor="end" font-family="Arial, sans-serif" font-size="${size}" font-weight="700" fill="${colors.numberColor}">${escapeXml(r.number)}</text>` +
+      `<text x="${numberX + 4}" y="${y}" font-family="Arial, sans-serif" font-size="${suffixSize}" font-weight="600" fill="${colors.labelColor}">${r.suffix}</text>`;
+  }).join("\n        ");
 }
 
 function updateContext(context) {
@@ -721,14 +711,15 @@ function updateContext(context) {
   const reached = reachedText !== "" && targetMs - Date.now() <= 0;
   let display;
   let label = part.label;
+  let rows = null;
 
   if (reached) {
     display = reachedText;
     label = "";
   } else if (part.kind === "custom") {
     const units = normalizeUnits(entry.units, entry.uuid);
-    display = formatUnits(valuesForUnits(targetMs, units), units);
-    label = labelForUnits(units);
+    rows = rowsForUnits(valuesForTarget(targetMs), units);
+    display = rows.map(r => r.number + r.suffix).join(" ");
   } else {
     const v = valuesForTarget(targetMs);
     switch (part.kind) {
@@ -744,6 +735,25 @@ function updateContext(context) {
       default:
         display = String(v.seconds).padStart(2, "0");
     }
+  }
+
+  if (entry.controller === "Keypad" && rows) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+        <rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>
+        ${stackedRowsSvg(rows, colors, font)}
+      </svg>`;
+
+    send({
+      event: "setImage",
+      context,
+      payload: {
+        image: "data:image/svg+xml;charset=utf8," + encodeURIComponent(svg),
+        target: 0,
+        state: 0
+      }
+    });
+
+    return;
   }
 
   if (entry.controller === "Keypad") {
