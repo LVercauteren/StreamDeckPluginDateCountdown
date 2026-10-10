@@ -237,9 +237,30 @@
 
     #status {
       margin-top: 5px;
+      padding: 4px 6px;
       color: #92949b;
-      font-size: 10px;
-      line-height: 1.3;
+      font-size: 9px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: monospace;
+      background: #1e1e1e;
+      border-radius: 2px;
+      border: 1px solid #3a3a3d;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    #status.error {
+      color: #ff9999;
+      background: #2a1a1a;
+      border-color: #5a2a2a;
+    }
+
+    #status.success {
+      color: #99ff99;
+      background: #1a2a1a;
+      border-color: #2a5a2a;
     }
   </style>
 </head>
@@ -360,9 +381,27 @@
       "com.wowforever.countdown.seconds": "Seconds"
     };
 
-    function updateStatus(message) {
-      if (statusEl) statusEl.textContent = message;
-      console.log("[Status]", message);
+    let statusMessages = [];
+
+    function addStatus(message, type = "info") {
+      statusMessages.push(message);
+      // Keep last 10 messages
+      if (statusMessages.length > 10) {
+        statusMessages.shift();
+      }
+      
+      statusEl.textContent = statusMessages.join("\n");
+      statusEl.classList.remove("error", "success");
+      if (type === "error") statusEl.classList.add("error");
+      if (type === "success") statusEl.classList.add("success");
+      
+      console.log(`[${type.toUpperCase()}]`, message);
+    }
+
+    function clearStatus() {
+      statusMessages = [];
+      statusEl.textContent = "";
+      statusEl.classList.remove("error", "success");
     }
 
     function isKeypad() {
@@ -439,7 +478,7 @@
       if (countdownSlots.length === 0) return;
 
       if (countdownSlots.length <= 1) {
-        updateStatus("You need at least one countdown.");
+        addStatus("You need at least one countdown.", "error");
         return;
       }
 
@@ -506,7 +545,7 @@
           sendCommand({ command: "getBackgroundSettings" });
         }
 
-        updateStatus("Loading saved settings…");
+        addStatus("Loading saved settings…");
       };
 
       socket.onmessage = function (event) {
@@ -522,18 +561,18 @@
 
         if (payload.slots) {
           renderSlots(payload.slots, payload.selectedIndex);
-          updateStatus("");
+          clearStatus();
         }
 
-        if (payload.slotError) updateStatus(payload.slotError);
-        if (payload.colorsError) updateStatus(payload.colorsError);
-        if (payload.backgroundError) updateStatus(payload.backgroundError);
+        if (payload.slotError) addStatus(payload.slotError, "error");
+        if (payload.colorsError) addStatus(payload.colorsError, "error");
+        if (payload.backgroundError) addStatus(payload.backgroundError, "error");
 
-        if (payload.backgroundSaved) updateStatus("Background applied.");
+        if (payload.backgroundSaved) addStatus("Background applied.", "success");
         if (payload.backgroundReset) {
           bgPreview.classList.add("hidden");
           bgPreview.removeAttribute("src");
-          updateStatus("Background removed.");
+          addStatus("Background removed.", "success");
         }
 
         if (payload.backgroundDataUrl !== undefined) {
@@ -574,7 +613,7 @@
       };
 
       socket.onerror = function () {
-        updateStatus("Could not connect. Close and reopen Stream Deck settings.");
+        addStatus("Could not connect. Close and reopen Stream Deck settings.", "error");
       };
     };
 
@@ -625,28 +664,28 @@
       const file = bgFile.files && bgFile.files[0];
       bgFile.value = "";
       if (!file) {
-        updateStatus("No file selected.");
+        addStatus("No file selected.", "error");
         return;
       }
 
-      console.log("[bgFile.change] File selected:", file.name, "Type:", file.type, "Size:", file.size);
-      updateStatus("Processing image…");
+      addStatus(`Selected: ${file.name} (${file.type}, ${file.size} bytes)`);
 
       const reader = new FileReader();
       
       reader.onerror = (e) => {
-        console.error("[FileReader] Error:", e);
-        updateStatus("Could not read that image.");
+        addStatus(`FileReader error: ${e.name}`, "error");
       };
 
       reader.onload = () => {
         try {
-          console.log("[FileReader.onload] Data loaded, length:", reader.result.length);
+          addStatus(`Data loaded: ${reader.result.length} bytes`);
           
           const img = new Image();
+          let imgLoadTimeout;
           
           img.onload = () => {
-            console.log("[Image.onload] Image loaded successfully, dimensions:", img.width, "x", img.height);
+            clearTimeout(imgLoadTimeout);
+            addStatus(`Image loaded: ${img.width}x${img.height}px`);
             
             try {
               // Center-crop to 144x144 and re-encode.
@@ -657,53 +696,63 @@
               const ctx = canvas.getContext("2d");
               
               if (!ctx) {
-                updateStatus("Canvas error: could not get 2D context.");
+                addStatus("Canvas error: no 2D context", "error");
                 return;
               }
+              
+              addStatus("Canvas created, cropping image...");
               
               const side = Math.min(img.width, img.height);
               const sx = (img.width - side) / 2;
               const sy = (img.height - side) / 2;
               ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
               
+              addStatus("Image drawn to canvas");
+              
               const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-              console.log("[Canvas] Data URL created, length:", dataUrl.length);
+              addStatus(`Data URL: ${dataUrl.length} bytes`);
               
               bgPreview.src = dataUrl;
               bgPreview.classList.remove("hidden");
-              console.log("[Preview] Preview image set");
+              addStatus("Preview updated, sending to plugin...");
               
               sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
-              updateStatus("Applying background…");
+              addStatus("Background save command sent", "success");
             } catch (e) {
-              console.error("[Image processing] Error:", e);
-              updateStatus("Error processing image: " + e.message);
+              addStatus(`Processing error: ${e.message}`, "error");
             }
           };
           
           img.onerror = (e) => {
-            console.error("[Image.onerror] Error loading image:", e);
-            updateStatus("That file is not a valid image.");
+            clearTimeout(imgLoadTimeout);
+            addStatus(`Image load failed: ${e.type || "unknown error"}`, "error");
           };
           
           img.onabort = () => {
-            console.error("[Image.onabort] Image load aborted");
-            updateStatus("Image load aborted.");
+            clearTimeout(imgLoadTimeout);
+            addStatus("Image load aborted", "error");
           };
           
-          console.log("[Image] Setting src to data URL");
+          addStatus("Loading image...");
+          
+          // Timeout after 5 seconds
+          imgLoadTimeout = setTimeout(() => {
+            addStatus("Image load timeout (5s)", "error");
+          }, 5000);
+          
           img.src = reader.result;
           
         } catch (e) {
-          console.error("[FileReader.onload] Exception:", e);
-          updateStatus("Error: " + e.message);
+          addStatus(`Exception: ${e.message}`, "error");
         }
       };
       
+      addStatus("Reading file...");
       reader.readAsDataURL(file);
     });
 
     bgResetButton.addEventListener("click", () => {
+      addStatus("Resetting background...");
       sendCommand({ command: "resetBackground" });
     });
 
@@ -716,12 +765,12 @@
 
     function readSlotFields(showErrors) {
       if (!slotDate.value) {
-        if (showErrors) updateStatus("Please choose a date and time first.");
+        if (showErrors) addStatus("Please choose a date and time first.", "error");
         return null;
       }
       const date = new Date(slotDate.value);
       if (Number.isNaN(date.getTime())) {
-        if (showErrors) updateStatus("That date and time is not valid.");
+        if (showErrors) addStatus("That date and time is not valid.", "error");
         return null;
       }
       return { name: slotName.value.trim(), targetDate: date.toISOString() };
