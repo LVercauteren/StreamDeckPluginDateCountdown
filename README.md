@@ -74,10 +74,10 @@ If left empty, the countdown simply shows zero.
 
 ## Examples
 <p align="center">
-  <img src="imgs/example2.gif" alt="Demo" width="700">
-  <img src="imgs/example1.gif" alt="Demo" width="700">
+  <img src="imgs/example2.gif" alt="Demo">
+  <img src="imgs/example1.gif" alt="Demo">
 </p>
 
-<img src="./imgs/example6.png" alt="Demo" width="700">
-<img src="./imgs/example4.png" alt="Demo" width="700">
-<img src="./imgs/example5.png" alt="Demo" width="700">
+<img src="./imgs/example6.png" alt="Demo">
+<img src="./imgs/example4.png" alt="Demo">
+<img src="./imgs/example5.png" alt="Demo">
