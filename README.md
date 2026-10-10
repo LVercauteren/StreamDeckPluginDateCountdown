@@ -73,10 +73,10 @@ If left empty, the countdown simply shows zero.
 - If you want multiple units in one display, use the **Countdown** action.
 
 ## Examples
-<p align="center">
+<p>
   <img src="imgs/example2.gif" alt="Demo">
 </p>
-<p align="center">
+<p>
   <img src="imgs/example1.gif" alt="Demo">
 </p>
 
