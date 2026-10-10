@@ -241,7 +241,12 @@
 
       if (currentActionUUID) {
         const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
-        colorSectionTitle.textContent = `${actionName} Colors`;
+        if (currentActionUUID) {
+          const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
+          colorSectionTitle.textContent = `${actionName} Colors`;
+        } else if (currentController === "Encoder") {
+          colorSectionTitle.textContent = "Dials Colors";
+        }
         addDebug("Updated title to: " + actionName + " Colors");
       } else {
         addDebug("Could not detect action UUID");
@@ -262,7 +267,15 @@
             action: currentActionUUID
           }
         });
-        send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getColorSettings" } });
+        send({
+          event: "sendToPlugin",
+          context: pluginUUID,
+          payload: {
+            command: "getColorSettings",
+            controller: currentController,
+            action: currentActionUUID
+          }
+        });
         status.textContent = "Loading saved settings…";
       };
 

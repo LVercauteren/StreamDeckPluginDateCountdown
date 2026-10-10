@@ -1,8 +1,14 @@
 {
   "dials": {
-    "backgroundColor": "#ffff7f",
+    "backgroundColor": "#aaaaff",
     "labelColor": "#2929dc",
     "numberColor": "#ff1d59"
   },
-  "keypad": {}
+  "keypad": {
+    "com.wowforever.countdown.days": {
+      "backgroundColor": "#000000",
+      "labelColor": "#d8d8dc",
+      "numberColor": "#aaaaff"
+    }
+  }
 }
