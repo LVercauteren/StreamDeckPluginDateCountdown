@@ -79,7 +79,8 @@ If left empty, the countdown simply shows zero.
 <p>
   <img src="imgs/example1.gif" alt="Demo">
 </p>
-
+Message when completed:
 <img src="./imgs/example6.png" alt="Demo">
+Settings:
 <img src="./imgs/example4.png" alt="Demo">
 <img src="./imgs/example5.png" alt="Demo">
