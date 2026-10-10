@@ -123,22 +123,41 @@
       border-top: 1px solid #48494e;
     }
 
-    .color-row {
+    .colors-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      margin: 4px 0;
+      gap: 4px;
+      align-items: flex-end;
+      margin: 0 0 5px 0;
     }
 
-    .color-row label {
+    .color-item {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .color-item label {
+      margin: 0 0 2px;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .color-item input[type="color"] {
+      width: 100%;
+      min-height: 20px;
+      height: 20px;
+    }
+
+    .compact-section {
       margin: 0;
     }
 
-    .button-row {
-      display: flex;
-      gap: 6px;
+    .compact-section label {
+      margin: 0 0 2px;
+    }
+
+    .compact-section input[type="range"] {
+      margin: 0 0 1px;
     }
 
     #status {
@@ -163,32 +182,36 @@
     <label for="slotDate" style="margin-top: 6px;">Target date and time</label>
     <input id="slotDate" type="datetime-local" step="60">
 
-    <div class="button-row">
-      <button id="saveSlotButton" type="button">Update</button>
-      <button id="addSlotButton" type="button">Add new</button>
-      <button id="deleteSlotButton" type="button">Delete</button>
+    <div style="display: flex; gap: 6px; margin-top: 5px;">
+      <button id="saveSlotButton" type="button" style="flex: 1; margin-top: 0;">Update</button>
+      <button id="addSlotButton" type="button" style="flex: 1; margin-top: 0;">Add new</button>
+      <button id="deleteSlotButton" type="button" style="flex: 1; margin-top: 0;">Delete</button>
     </div>
 
     <hr>
     <h3>Countdown Font Size</h3>
-    <label for="labelSize">Label size: <span id="labelSizeValue">18</span> px</label>
-    <input id="labelSize" type="range" min="12" max="28" value="18">
-    <label for="numberSize" style="margin-top: 12px;">Number size: <span id="numberSizeValue">40</span> px</label>
-    <input id="numberSize" type="range" min="12" max="54" value="40">
+    <div class="compact-section">
+      <label for="labelSize">Label size: <span id="labelSizeValue">18</span> px</label>
+      <input id="labelSize" type="range" min="12" max="28" value="18">
+      <label for="numberSize">Number size: <span id="numberSizeValue">40</span> px</label>
+      <input id="numberSize" type="range" min="12" max="54" value="40">
+    </div>
 
     <hr>
     <h3 id="colorSectionTitle">Countdown Colors</h3>
-    <div class="color-row">
-      <label for="backgroundColor">Background color</label>
-      <input id="backgroundColor" type="color" value="#111827">
-    </div>
-    <div class="color-row">
-      <label for="numberColor">Number color</label>
-      <input id="numberColor" type="color" value="#FFFFFF">
-    </div>
-    <div class="color-row">
-      <label for="labelColor">Label color</label>
-      <input id="labelColor" type="color" value="#D8D8DC">
+    <div class="colors-row">
+      <div class="color-item">
+        <label for="backgroundColor">BG</label>
+        <input id="backgroundColor" type="color" value="#111827">
+      </div>
+      <div class="color-item">
+        <label for="numberColor">Number</label>
+        <input id="numberColor" type="color" value="#FFFFFF">
+      </div>
+      <div class="color-item">
+        <label for="labelColor">Label</label>
+        <input id="labelColor" type="color" value="#D8D8DC">
+      </div>
     </div>
     <button id="saveAllButton" type="button">Save</button>
 
@@ -378,7 +401,6 @@
       numberSizeValue.textContent = numberSize.value;
     });
 
-    // Picking a slot assigns it to this button immediately.
     slotSelect.addEventListener("change", () => {
       showSelectedSlotFields();
       sendCommand({ command: "selectCountdownSlot", index: Number(slotSelect.value) });
@@ -426,7 +448,6 @@
       updateStatus("Countdown deleted.");
     });
 
-    // Single Save button: font sizes + colors for this action.
     saveAllButton.addEventListener("click", () => {
       sendCommand({
         command: "saveFontSettings",
