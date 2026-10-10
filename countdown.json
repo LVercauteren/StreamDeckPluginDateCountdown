@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
-	"id": "wow-forever-countdown",
+	"id": "date-countdown",
 	"controller": "Encoder",
 	"items": [
 		{
@@ -52,7 +52,7 @@
 	],
 
 	"slots": [
-    { "name": "Launch", "targetDate": "2026-11-04T15:00:00Z" },
+    { "name": "Holiday", "targetDate": "2026-12-25T00:00:00Z" },
     { "name": "Vacation", "targetDate": "2026-12-20T00:00:00Z" },
     { "name": "Birthday", "targetDate": "2027-03-15T18:00:00Z" }
   ]

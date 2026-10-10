@@ -3,7 +3,7 @@
   "Actions": [
     {
       "Name": "Days",
-      "UUID": "com.wowforever.countdown.days",
+      "UUID": "com.lvercauteren.datecountdown.days",
       "Icon": "imgs/action",
       "Controllers": [
         "Keypad",
@@ -20,7 +20,7 @@
     },
     {
       "Name": "Hours",
-      "UUID": "com.wowforever.countdown.hours",
+      "UUID": "com.lvercauteren.datecountdown.hours",
       "Icon": "imgs/action",
       "Controllers": [
         "Keypad",
@@ -37,7 +37,7 @@
     },
     {
       "Name": "Minutes",
-      "UUID": "com.wowforever.countdown.minutes",
+      "UUID": "com.lvercauteren.datecountdown.minutes",
       "Icon": "imgs/action",
       "Controllers": [
         "Keypad",
@@ -54,7 +54,7 @@
     },
     {
       "Name": "Seconds",
-      "UUID": "com.wowforever.countdown.seconds",
+      "UUID": "com.lvercauteren.datecountdown.seconds",
       "Icon": "imgs/action",
       "Controllers": [
         "Keypad",
@@ -70,14 +70,14 @@
       ]
     }
   ],
-  "Author": "WoW Forever Countdown",
-  "Category": "WoW Forever",
+  "Author": "LVercauteren",
+  "Category": "Date Countdown",
   "CategoryIcon": "imgs/action",
   "CodePath": "bin/plugin.js",
   "PropertyInspectorPath": "ui/settings.html",
-  "Description": "Live countdown to November 4, 2026 at 3:00 PM Pacific Standard Time.",
+  "Description": "Live countdown to a configurable date, with Days, Hours, Minutes and Seconds actions.",
   "Icon": "imgs/action",
-  "Name": "WoW Forever Countdown",
+  "Name": "Date Countdown",
   "Nodejs": {
     "Version": "20"
   },
@@ -87,7 +87,7 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.wowforever.countdown",
+  "UUID": "com.lvercauteren.datecountdown",
   "Version": "1.0.0.0",
   "SDKVersion": 2,
   "Software": {

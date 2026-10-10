@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const DEFAULT_TARGET_MS = Date.parse("2026-11-04T15:00:00-08:00");
+const DEFAULT_TARGET_MS = Date.UTC(new Date().getUTCFullYear() + 1, 0, 1);
 const TARGET_FILE = path.join(__dirname, "target-date.json");
 const COUNTDOWN_FILE = path.join(__dirname, "countdowns.json");
 const FONT_FILE = path.join(__dirname, "font-settings.json");
@@ -35,10 +35,10 @@ loadKeypadBackground();
 let pluginId = null;
 
 const PARTS = {
-  "com.wowforever.countdown.days": { label: "DAYS", kind: "days" },
-  "com.wowforever.countdown.hours": { label: "HOURS", kind: "hours" },
-  "com.wowforever.countdown.minutes": { label: "MINUTES", kind: "minutes" },
-  "com.wowforever.countdown.seconds": { label: "SECONDS", kind: "seconds" }
+  "com.lvercauteren.datecountdown.days": { label: "DAYS", kind: "days" },
+  "com.lvercauteren.datecountdown.hours": { label: "HOURS", kind: "hours" },
+  "com.lvercauteren.datecountdown.minutes": { label: "MINUTES", kind: "minutes" },
+  "com.lvercauteren.datecountdown.seconds": { label: "SECONDS", kind: "seconds" }
 };
 
 function loadKeypadBackground() {
@@ -332,7 +332,7 @@ function startConnection() {
   const registerEvent = args[args.indexOf("-registerEvent") + 1];
 
   if (!port || !pluginId || !registerEvent) {
-    process.stderr.write("WoW Forever Countdown: missing Stream Deck startup arguments\n");
+    process.stderr.write("Date Countdown: missing Stream Deck startup arguments\n");
     process.exit(2);
   }
 
