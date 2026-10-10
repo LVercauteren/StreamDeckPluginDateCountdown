@@ -4,125 +4,147 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
+
   <title>WoW Forever Countdown Settings</title>
   <style>
     * {
       box-sizing: border-box;
     }
 
-    body {
-      margin: 0;
-      padding: 10px 12px 10px 70px;
-      font-family: "Segoe UI", Arial, sans-serif;
-      font-size: 12px;
-      color: #d8d8dc;
-    }
 
-    .settings-content {
+    html,
+    body {
       width: 100%;
       margin: 0;
     }
 
-    .color-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 8px 0;
+    body {
+      padding: 4px 6px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 11px;
+      color: #d8d8dc;
+      background: #2d2d30;
     }
 
-    .color-row label {
+    .settings-content {
+      width: calc(100% - 76px);
+      height: 100%;
       margin: 0;
-      flex: 1;
+      padding: 0 6px 12px 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      transform: translateX(65px);
     }
 
-    .color-row input[type="color"] {
-      width: 42px;
-      min-width: 42px;
-      height: 28px;
-      min-height: 28px;
-      padding: 2px;
-      cursor: pointer;
-    }
 
     h3 {
-      margin: 0 0 10px;
-      font-size: 13px;
+      margin: 5px 0 4px;
+      font-size: 12px;
+      line-height: 1.25;
       font-weight: 600;
-      color: #e8e8eb;
+      color: #e0e0e0;
     }
 
     p {
-      margin: 0 0 14px;
-      color: #a4a5ab;
-      font-size: 11px;
-      line-height: 1.4;
+      margin: 0 0 6px;
+      color: #b8b8b8;
+      font-size: 10px;
+      line-height: 1.3;
     }
 
     label {
       display: block;
-      margin: 0 0 5px;
+      margin: 0 0 3px;
       color: #bfc0c6;
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.25;
     }
 
     input,
     button {
       width: 100%;
-      min-height: 29px;
-      padding: 5px 8px;
-      border-radius: 2px;
+      min-height: 23px;
+      padding: 3px 6px;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11px;
+      border-radius: 3px;
     }
 
     input {
       color: #eeeeef;
-      background: #38393e;
-      border: 1px solid #45464c;
+      background: #3a3a3d;
+      border: 1px solid #555558;
       color-scheme: dark;
-      outline: none;
     }
 
     input:focus {
       border-color: #1684e8;
+      outline: none;
+    }
+
+    input[type="range"] {
+      min-height: 18px;
+      padding: 0;
+      margin: 0 0 3px;
+    }
+
+    input[type="color"] {
+      width: 34px;
+      min-width: 34px;
+      height: 22px;
+      min-height: 22px;
+      padding: 1px;
+      cursor: pointer;
     }
 
     button {
-      margin-top: 10px;
+      min-height: 23px;
+      margin-top: 5px;
       color: #eeeeef;
-      background: #3a3b40;
-      border: 1px solid #505158;
+      background: #414145;
+      border: 1px solid #5a5a5e;
       cursor: pointer;
     }
 
     button:hover {
-      background: #46474d;
+      background: #505055;
     }
 
     button:active {
       background: #303136;
     }
 
-    #status {
-      margin-top: 9px;
-      color: #92949b;
-      font-size: 10px;
-      line-height: 1.4;
+    hr {
+      margin: 7px 0;
+      border: 0;
+      border-top: 1px solid #48494e;
     }
 
-    .debug {
-      background: #2a2b30;
-      padding: 8px;
-      margin-top: 12px;
-      border-radius: 4px;
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin: 4px 0;
+    }
+
+    .color-row label {
+      flex: 1;
+      margin: 0;
+    }
+
+    #status {
+      margin-top: 5px;
+      color: #92949b;
       font-size: 10px;
-      color: #a4a5ab;
-      max-height: 200px;
-      overflow-y: auto;
-      font-family: monospace;
-      white-space: pre-wrap;
-      word-break: break-all;
+      line-height: 1.3;
+    }
+
+    #targetDate {
+      width: 180px;
+      max-width: 100%;
     }
   </style>
 </head>
@@ -134,7 +156,6 @@
 
     <label for="targetDate">Target date and time</label>
     <input id="targetDate" type="datetime-local" step="60" placeholder="Loading saved date…">
-    <button id="saveButton" type="button">Save target date</button>
 
     <hr>
     <h3>Countdown Font Size</h3>
@@ -142,7 +163,6 @@
     <input id="labelSize" type="range" min="12" max="28" value="18">
     <label for="numberSize" style="margin-top: 12px;">Number size: <span id="numberSizeValue">40</span> px</label>
     <input id="numberSize" type="range" min="12" max="54" value="40">
-    <button id="saveFontButton" type="button">Save font sizes</button>
 
     <hr>
     <h3 id="colorSectionTitle">Countdown Colors</h3>
@@ -158,10 +178,10 @@
       <label for="labelColor">Label color</label>
       <input id="labelColor" type="color" value="#D8D8DC">
     </div>
-    <button id="saveColorsButton" type="button">Save colors</button>
+    <button id="saveAllButton" type="button">Save</button>
 
-    <div id="status">Connecting to Stream Deck…</div>
-    <div id="debug" class="debug">Debug info will appear here</div>
+    <!--div id="status">Connecting to Stream Deck…</div-->
+    <!--div id="debug" class="debug">Debug info will appear here</div-->
   </div>
 
   <script>
@@ -174,18 +194,16 @@
     const input = document.getElementById("targetDate");
     const status = document.getElementById("status");
     const debug = document.getElementById("debug");
-    const saveButton = document.getElementById("saveButton");
     const colorSectionTitle = document.getElementById("colorSectionTitle");
 
     const labelSize = document.getElementById("labelSize");
     const numberSize = document.getElementById("numberSize");
     const labelSizeValue = document.getElementById("labelSizeValue");
     const numberSizeValue = document.getElementById("numberSizeValue");
-    const saveFontButton = document.getElementById("saveFontButton");
     const backgroundColor = document.getElementById("backgroundColor");
     const numberColor = document.getElementById("numberColor");
     const labelColor = document.getElementById("labelColor");
-    const saveColorsButton = document.getElementById("saveColorsButton");
+    const saveAllButton = document.getElementById("saveAllButton");
 
     const ACTION_NAMES = {
       "com.wowforever.countdown.days": "Days",
@@ -216,7 +234,14 @@
     function send(message) {
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
+        return true;
       }
+
+      window.alert(
+        "WoW Forever Countdown: The settings connection is not open. Please close and reopen the settings panel."
+      );
+
+      return false;
     }
 
     window.connectElgatoStreamDeckSocket = function (port, uuid, registerEvent, info, actionInfo) {
@@ -255,6 +280,7 @@
       socket = new WebSocket("ws://127.0.0.1:" + port);
 
       socket.onopen = function () {
+        console.log("WoW Forever Countdown: Property Inspector connected.");
         addDebug("WebSocket connected");
         send({ event: registerEvent, uuid: pluginUUID });
         send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getTargetDate" } });
@@ -335,8 +361,34 @@
       numberSizeValue.textContent = numberSize.value;
     });
 
-    saveFontButton.addEventListener("click", () => {
-      addDebug("SAVE FONT: action=" + currentActionUUID + " controller=" + currentController);
+
+    saveAllButton.addEventListener("click", () => {
+      window.alert("Save button clicked.");
+      console.log("WoW Forever Countdown: Save button clicked.");
+      if (!input.value) {
+        status.textContent = "Please choose a date and time first.";
+        return;
+      }
+
+      const chosenDate = new Date(input.value);
+
+      if (Number.isNaN(chosenDate.getTime())) {
+        status.textContent = "That date and time is not valid.";
+        return;
+      }
+
+      savedTargetDate = chosenDate.toISOString();
+
+      // Save target date
+      send({
+        event: "sendToPlugin",
+        context: pluginUUID,
+        payload: {
+          targetDate: savedTargetDate
+        }
+      });
+
+      // Save font sizes
       send({
         event: "sendToPlugin",
         context: pluginUUID,
@@ -348,11 +400,8 @@
           numberSize: Number(numberSize.value)
         }
       });
-      status.textContent = "Saving font sizes…";
-    });
 
-    saveColorsButton.addEventListener("click", () => {
-      addDebug("SAVE COLORS: action=" + currentActionUUID + " controller=" + currentController);
+      // Save colors
       send({
         event: "sendToPlugin",
         context: pluginUUID,
@@ -367,28 +416,8 @@
           }
         }
       });
-      status.textContent = "Saving colors…";
-    });
 
-    saveButton.addEventListener("click", function () {
-      if (!input.value) {
-        status.textContent = "Please choose a date and time first.";
-        return;
-      }
-
-      const chosenDate = new Date(input.value);
-      if (Number.isNaN(chosenDate.getTime())) {
-        status.textContent = "That date and time is not valid.";
-        return;
-      }
-
-      savedTargetDate = chosenDate.toISOString();
-      send({
-        event: "sendToPlugin",
-        context: pluginUUID,
-        payload: { targetDate: savedTargetDate }
-      });
-      status.textContent = "Saving target date…";
+      status.textContent = "Saving all settings…";
     });
   </script>
 </body>

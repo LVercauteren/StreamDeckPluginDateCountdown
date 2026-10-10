@@ -9,6 +9,11 @@
       "backgroundColor": "#000000",
       "labelColor": "#d8d8dc",
       "numberColor": "#aaaaff"
+    },
+    "com.wowforever.countdown.seconds": {
+      "backgroundColor": "#111827",
+      "labelColor": "#d8d8dc",
+      "numberColor": "#ffaa7f"
     }
   }
 }
