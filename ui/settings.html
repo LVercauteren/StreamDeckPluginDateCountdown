@@ -99,13 +99,40 @@
     }
 
     input[type="color"] {
-      width: 28px;
-      min-width: 28px;
-      height: 18px;
-      min-height: 18px;
-      padding: 1px;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      min-width: 20px;
+      max-width: 20px;
+      height: 20px;
+      min-height: 20px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-radius: 3px;
+      background: transparent;
       cursor: pointer;
-      border: 1px solid #555558;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    input[type="color"]:focus {
+      border: none;
+      outline: none;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 3px;
+    }
+
+    input[type="color"]::-moz-color-swatch {
+      border: none;
+      border-radius: 3px;
     }
 
     button {
@@ -175,7 +202,7 @@
 <body>
   <div class="settings-content">
     <h3>Countdown</h3>
-    <p>Choose which countdown this button or dial shows.</p>
+    <p>Choose which countdown this button or dial shows. Changes apply immediately.</p>
 
     <label for="slotSelect">Countdown for this button</label>
     <select id="slotSelect"></select>
@@ -186,7 +213,6 @@
     <input id="slotDate" type="datetime-local" step="60">
 
     <div style="display: flex; gap: 6px; margin-top: 5px;">
-      <button id="saveSlotButton" type="button" style="flex: 1; margin-top: 0;">Update</button>
       <button id="addSlotButton" type="button" style="flex: 1; margin-top: 0;">Add new</button>
       <button id="deleteSlotButton" type="button" style="flex: 1; margin-top: 0;">Delete</button>
     </div>
@@ -216,7 +242,6 @@
         <input id="labelColor" type="color" value="#D8D8DC">
       </div>
     </div>
-    <button id="saveAllButton" type="button">Save</button>
 
     <div id="status"></div>
   </div>
@@ -232,7 +257,6 @@
     const slotSelect = document.getElementById("slotSelect");
     const slotName = document.getElementById("slotName");
     const slotDate = document.getElementById("slotDate");
-    const saveSlotButton = document.getElementById("saveSlotButton");
     const addSlotButton = document.getElementById("addSlotButton");
     const deleteSlotButton = document.getElementById("deleteSlotButton");
     const colorSectionTitle = document.getElementById("colorSectionTitle");
@@ -244,7 +268,6 @@
     const backgroundColor = document.getElementById("backgroundColor");
     const numberColor = document.getElementById("numberColor");
     const labelColor = document.getElementById("labelColor");
-    const saveAllButton = document.getElementById("saveAllButton");
 
     const ACTION_NAMES = {
       "com.wowforever.countdown.days": "Days",
@@ -275,6 +298,14 @@
 
     function sendCommand(payload) {
       return send({ event: "sendToPlugin", context: pluginUUID, payload });
+    }
+
+    function debounce(fn, delay) {
+      let handle = null;
+      return function () {
+        clearTimeout(handle);
+        handle = setTimeout(fn, delay);
+      };
     }
 
     function showSelectedSlotFields() {
@@ -350,11 +381,20 @@
 
         if (payload.slots) {
           renderSlots(payload.slots, payload.selectedIndex);
-          updateStatus("Settings loaded.");
+          updateStatus("");
         }
 
         if (payload.slotError) {
           updateStatus(payload.slotError);
+        }
+
+        if (payload.colorsError) {
+          updateStatus(payload.colorsError);
+        }
+
+        // Replies to our own saves must not overwrite controls the user may still be dragging.
+        if (payload.fontSaved || payload.colorsSaved) {
+          return;
         }
 
         if (payload.dialColors && currentController !== "Keypad") {
@@ -381,14 +421,6 @@
           numberSize.value = payload.numberSize;
           numberSizeValue.textContent = payload.numberSize;
         }
-
-        if (payload.fontSaved || payload.colorsSaved) {
-          updateStatus("Saved.");
-        }
-
-        if (payload.colorsError) {
-          updateStatus(payload.colorsError);
-        }
       };
 
       socket.onerror = function () {
@@ -396,62 +428,8 @@
       };
     };
 
-    labelSize.addEventListener("input", () => {
-      labelSizeValue.textContent = labelSize.value;
-    });
-
-    numberSize.addEventListener("input", () => {
-      numberSizeValue.textContent = numberSize.value;
-    });
-
-    slotSelect.addEventListener("change", () => {
-      showSelectedSlotFields();
-      sendCommand({ command: "selectCountdownSlot", index: Number(slotSelect.value) });
-    });
-
-    function readSlotFields() {
-      if (!slotDate.value) {
-        updateStatus("Please choose a date and time first.");
-        return null;
-      }
-      const date = new Date(slotDate.value);
-      if (Number.isNaN(date.getTime())) {
-        updateStatus("That date and time is not valid.");
-        return null;
-      }
-      return { name: slotName.value.trim(), targetDate: date.toISOString() };
-    }
-
-    saveSlotButton.addEventListener("click", () => {
-      const fields = readSlotFields();
-      if (!fields || countdownSlots.length === 0) return;
-      sendCommand({
-        command: "saveCountdownSlot",
-        index: Number(slotSelect.value),
-        name: fields.name,
-        targetDate: fields.targetDate
-      });
-      updateStatus("Countdown updated.");
-    });
-
-    addSlotButton.addEventListener("click", () => {
-      const fields = readSlotFields();
-      if (!fields) return;
-      sendCommand({
-        command: "addCountdownSlot",
-        name: fields.name,
-        targetDate: fields.targetDate
-      });
-      updateStatus("Countdown added.");
-    });
-
-    deleteSlotButton.addEventListener("click", () => {
-      if (countdownSlots.length === 0) return;
-      sendCommand({ command: "deleteCountdownSlot", index: Number(slotSelect.value) });
-      updateStatus("Countdown deleted.");
-    });
-
-    saveAllButton.addEventListener("click", () => {
+    // ---- Auto-apply: font sizes ----
+    const applyFont = debounce(() => {
       sendCommand({
         command: "saveFontSettings",
         action: currentActionUUID,
@@ -459,7 +437,20 @@
         labelSize: Number(labelSize.value),
         numberSize: Number(numberSize.value)
       });
+    }, 100);
 
+    labelSize.addEventListener("input", () => {
+      labelSizeValue.textContent = labelSize.value;
+      applyFont();
+    });
+
+    numberSize.addEventListener("input", () => {
+      numberSizeValue.textContent = numberSize.value;
+      applyFont();
+    });
+
+    // ---- Auto-apply: colors ----
+    const applyColors = debounce(() => {
       sendCommand({
         command: "saveColorSettings",
         action: currentActionUUID,
@@ -470,8 +461,59 @@
           labelColor: labelColor.value
         }
       });
+    }, 100);
 
-      updateStatus("Saving…");
+    [backgroundColor, numberColor, labelColor].forEach(el => {
+      el.addEventListener("input", applyColors);
+    });
+
+    // ---- Slot selection and auto-apply of name/date edits ----
+    slotSelect.addEventListener("change", () => {
+      showSelectedSlotFields();
+      sendCommand({ command: "selectCountdownSlot", index: Number(slotSelect.value) });
+    });
+
+    function readSlotFields(showErrors) {
+      if (!slotDate.value) {
+        if (showErrors) updateStatus("Please choose a date and time first.");
+        return null;
+      }
+      const date = new Date(slotDate.value);
+      if (Number.isNaN(date.getTime())) {
+        if (showErrors) updateStatus("That date and time is not valid.");
+        return null;
+      }
+      return { name: slotName.value.trim(), targetDate: date.toISOString() };
+    }
+
+    function applySlotEdit() {
+      if (countdownSlots.length === 0) return;
+      const fields = readSlotFields(false);
+      if (!fields) return;
+      sendCommand({
+        command: "saveCountdownSlot",
+        index: Number(slotSelect.value),
+        name: fields.name,
+        targetDate: fields.targetDate
+      });
+    }
+
+    slotName.addEventListener("change", applySlotEdit);
+    slotDate.addEventListener("change", applySlotEdit);
+
+    addSlotButton.addEventListener("click", () => {
+      const fields = readSlotFields(true);
+      if (!fields) return;
+      sendCommand({
+        command: "addCountdownSlot",
+        name: fields.name,
+        targetDate: fields.targetDate
+      });
+    });
+
+    deleteSlotButton.addEventListener("click", () => {
+      if (countdownSlots.length === 0) return;
+      sendCommand({ command: "deleteCountdownSlot", index: Number(slotSelect.value) });
     });
   </script>
 </body>
