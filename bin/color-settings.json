@@ -14,6 +14,16 @@
       "backgroundColor": "#111827",
       "labelColor": "#d8d8dc",
       "numberColor": "#ffffff"
+    },
+    "com.lvercauteren.datecountdown.seconds": {
+      "backgroundColor": "#111827",
+      "labelColor": "#d8d8dc",
+      "numberColor": "#55ff7f"
+    },
+    "com.lvercauteren.datecountdown.minutes": {
+      "backgroundColor": "#111827",
+      "labelColor": "#d8d8dc",
+      "numberColor": "#ff5500"
     }
   }
 }
