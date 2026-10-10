@@ -214,16 +214,6 @@
       margin: 0 0 1px;
     }
 
-    #bgPreview {
-      display: block;
-      width: 72px;
-      height: 72px;
-      margin: 4px 0;
-      object-fit: cover;
-      border-radius: 3px;
-      border: 1px solid #555558;
-    }
-
     #deleteWarning {
       margin: 5px 0 0;
       padding: 5px 6px;
@@ -317,21 +307,11 @@
           <input id="labelColor" type="color" value="#D8D8DC">
         </div>
       </div>
-
-      <hr>
-      <h3>Keypad Background Image</h3>
-      <p>Each keypad button can have its own background image. PNG, JPG or WebP; it is resized automatically.</p>
-      <img id="bgPreview" class="hidden" alt="Background preview">
-      <input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
-      <div class="row">
-        <button id="bgChooseButton" type="button">Choose image…</button>
-        <button id="bgResetButton" type="button">Remove</button>
-      </div>
     </div>
 
     <div id="dialOnly" class="hidden">
       <hr>
-      <p>Dial colors are controlled by Stream Deck and can't be customized. Keypads support custom colors and a background image.</p>
+      <p>Dial colors are controlled by Stream Deck and can't be customized.</p>
     </div>
 
     <div id="status"></div>
@@ -366,11 +346,6 @@
     const backgroundColor = $("backgroundColor");
     const numberColor = $("numberColor");
     const labelColor = $("labelColor");
-
-    const bgPreview = $("bgPreview");
-    const bgFile = $("bgFile");
-    const bgChooseButton = $("bgChooseButton");
-    const bgResetButton = $("bgResetButton");
 
     const ACTION_NAMES = {
       "com.lvercauteren.datecountdown.days": "Days",
@@ -537,7 +512,6 @@
             controller: currentController,
             action: currentActionUUID
           });
-          sendCommand({ command: "getBackgroundSettings" });
         }
 
         addStatus("Loading saved settings…");
@@ -561,24 +535,6 @@
 
         if (payload.slotError) addStatus(payload.slotError, "error");
         if (payload.colorsError) addStatus(payload.colorsError, "error");
-        if (payload.backgroundError) addStatus(payload.backgroundError, "error");
-
-        if (payload.backgroundSaved) addStatus("Background applied.", "success");
-        if (payload.backgroundReset) {
-          bgPreview.classList.add("hidden");
-          bgPreview.removeAttribute("src");
-          addStatus("Background removed.", "success");
-        }
-
-        if (payload.backgroundDataUrl !== undefined) {
-          if (payload.backgroundDataUrl) {
-            bgPreview.src = payload.backgroundDataUrl;
-            bgPreview.classList.remove("hidden");
-          } else {
-            bgPreview.classList.add("hidden");
-            bgPreview.removeAttribute("src");
-          }
-        }
 
         if (payload.fontSaved || payload.colorsSaved) return;
 
@@ -641,102 +597,6 @@
 
     [backgroundColor, numberColor, labelColor].forEach(el => {
       el.addEventListener("input", applyColors);
-    });
-
-    bgChooseButton.addEventListener("click", () => bgFile.click());
-
-    bgFile.addEventListener("change", () => {
-      const file = bgFile.files && bgFile.files[0];
-      bgFile.value = "";
-      if (!file) {
-        addStatus("No file selected.", "error");
-        return;
-      }
-
-      addStatus(`Selected: ${file.name} (${file.type}, ${file.size} bytes)`);
-
-      const reader = new FileReader();
-
-      reader.onerror = (e) => {
-        addStatus(`FileReader error: ${e.name}`, "error");
-      };
-
-      reader.onload = () => {
-        try {
-          addStatus(`Data loaded: ${reader.result.length} bytes`);
-
-          const img = new Image();
-          let imgLoadTimeout;
-
-          img.onload = () => {
-            clearTimeout(imgLoadTimeout);
-            addStatus(`Image loaded: ${img.width}x${img.height}px`);
-
-            try {
-              const size = 144;
-              const canvas = document.createElement("canvas");
-              canvas.width = size;
-              canvas.height = size;
-              const ctx = canvas.getContext("2d");
-
-              if (!ctx) {
-                addStatus("Canvas error: no 2D context", "error");
-                return;
-              }
-
-              addStatus("Canvas created, cropping image...");
-
-              const side = Math.min(img.width, img.height);
-              const sx = (img.width - side) / 2;
-              const sy = (img.height - side) / 2;
-              ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-
-              addStatus("Image drawn to canvas");
-
-              const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-              addStatus(`Data URL: ${dataUrl.length} bytes`);
-
-              bgPreview.src = dataUrl;
-              bgPreview.classList.remove("hidden");
-              addStatus("Preview updated, sending to plugin...");
-
-              sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
-              addStatus("Background save command sent", "success");
-            } catch (e) {
-              addStatus(`Processing error: ${e.message}`, "error");
-            }
-          };
-
-          img.onerror = (e) => {
-            clearTimeout(imgLoadTimeout);
-            addStatus(`Image load failed: ${e.type || "unknown error"}`, "error");
-          };
-
-          img.onabort = () => {
-            clearTimeout(imgLoadTimeout);
-            addStatus("Image load aborted", "error");
-          };
-
-          addStatus("Loading image...");
-
-          imgLoadTimeout = setTimeout(() => {
-            addStatus("Image load timeout (5s)", "error");
-          }, 5000);
-
-          img.src = reader.result;
-
-        } catch (e) {
-          addStatus(`Exception: ${e.message}`, "error");
-        }
-      };
-
-      addStatus("Reading file...");
-      reader.readAsDataURL(file);
-    });
-
-    bgResetButton.addEventListener("click", () => {
-      addStatus("Resetting background...");
-      sendCommand({ command: "resetBackground" });
     });
 
     slotSelect.addEventListener("change", () => {
