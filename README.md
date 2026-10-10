@@ -71,3 +71,6 @@ If left empty, the countdown simply shows zero.
 - Existing countdowns without a time zone still work and use the local time zone.
 - The legacy single-unit actions still behave as before.
 - If you want multiple units in one display, use the **Countdown** action.
+
+## Examples
+![Plugin demo](imgs/example.gif)
