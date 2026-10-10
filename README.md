@@ -73,8 +73,10 @@ If left empty, the countdown simply shows zero.
 - If you want multiple units in one display, use the **Countdown** action.
 
 ## Examples
-![Plugin demo](imgs/example2.gif)
-![Plugin demo](imgs/example1.gif)
+<p align="center">
+  <img src="imgs/example2.png" alt="Demo" width="700">
+  <img src="imgs/example1.png" alt="Demo" width="700">
+</p>
 
 <img src="./imgs/example6.png" alt="Demo" width="700">
 <img src="./imgs/example4.png" alt="Demo" width="700">
