@@ -300,7 +300,6 @@
       <input id="numberSize" type="range" min="12" max="54" value="40">
     </div>
 
-    <!-- Keypad only -->
     <div id="keypadOnly">
       <hr>
       <h3 id="colorSectionTitle">Countdown Colors</h3>
@@ -321,7 +320,7 @@
 
       <hr>
       <h3>Keypad Background Image</h3>
-      <p>Used by all countdown keypads. PNG, JPG or WebP; it is resized automatically.</p>
+      <p>Each keypad button can have its own background image. PNG, JPG or WebP; it is resized automatically.</p>
       <img id="bgPreview" class="hidden" alt="Background preview">
       <input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
       <div class="row">
@@ -330,7 +329,6 @@
       </div>
     </div>
 
-    <!-- Dial only -->
     <div id="dialOnly" class="hidden">
       <hr>
       <p>Dial colors are controlled by Stream Deck and can't be customized. Keypads support custom colors and a background image.</p>
@@ -385,16 +383,15 @@
 
     function addStatus(message, type = "info") {
       statusMessages.push(message);
-      // Keep last 10 messages
       if (statusMessages.length > 10) {
         statusMessages.shift();
       }
-      
+
       statusEl.textContent = statusMessages.join("\n");
       statusEl.classList.remove("error", "success");
       if (type === "error") statusEl.classList.add("error");
       if (type === "success") statusEl.classList.add("success");
-      
+
       console.log(`[${type.toUpperCase()}]`, message);
     }
 
@@ -466,7 +463,6 @@
       hideDeleteWarning();
     }
 
-    // ---- Delete with confirmation ----
     function hideDeleteWarning() {
       clearTimeout(deleteTimer);
       deleteTimer = null;
@@ -502,7 +498,6 @@
       sendCommand({ command: "deleteCountdownSlot", index });
     });
 
-    // ---- Connection ----
     window.connectElgatoStreamDeckSocket = function (port, uuid, registerEvent, info, actionInfo) {
       pluginUUID = uuid;
 
@@ -585,20 +580,13 @@
           }
         }
 
-        // Replies to our own saves must not overwrite controls the user may still be dragging.
         if (payload.fontSaved || payload.colorsSaved) return;
 
-        if (payload.dialColors && !isKeypad()) {
-          // Dials ignore colors; nothing to show.
-        }
-
-        if (payload.keypadColors && isKeypad()) {
-          const selected = payload.keypadColors[currentActionUUID];
-          if (selected) {
-            backgroundColor.value = selected.backgroundColor || "#111827";
-            numberColor.value = selected.numberColor || "#FFFFFF";
-            labelColor.value = selected.labelColor || "#D8D8DC";
-          }
+        if (payload.colors && isKeypad()) {
+          const selected = payload.colors;
+          backgroundColor.value = selected.backgroundColor || "#111827";
+          numberColor.value = selected.numberColor || "#FFFFFF";
+          labelColor.value = selected.labelColor || "#D8D8DC";
         }
 
         if (payload.labelSize !== undefined) {
@@ -617,7 +605,6 @@
       };
     };
 
-    // ---- Auto-apply: font sizes ----
     const applyFont = debounce(() => {
       sendCommand({
         command: "saveFontSettings",
@@ -638,7 +625,6 @@
       applyFont();
     });
 
-    // ---- Auto-apply: colors (keypad only) ----
     const applyColors = debounce(() => {
       if (!isKeypad()) return;
       sendCommand({
@@ -657,7 +643,6 @@
       el.addEventListener("input", applyColors);
     });
 
-    // ---- Background image (keypad only) ----
     bgChooseButton.addEventListener("click", () => bgFile.click());
 
     bgFile.addEventListener("change", () => {
@@ -671,7 +656,7 @@
       addStatus(`Selected: ${file.name} (${file.type}, ${file.size} bytes)`);
 
       const reader = new FileReader();
-      
+
       reader.onerror = (e) => {
         addStatus(`FileReader error: ${e.name}`, "error");
       };
@@ -679,74 +664,72 @@
       reader.onload = () => {
         try {
           addStatus(`Data loaded: ${reader.result.length} bytes`);
-          
+
           const img = new Image();
           let imgLoadTimeout;
-          
+
           img.onload = () => {
             clearTimeout(imgLoadTimeout);
             addStatus(`Image loaded: ${img.width}x${img.height}px`);
-            
+
             try {
-              // Center-crop to 144x144 and re-encode.
               const size = 144;
               const canvas = document.createElement("canvas");
               canvas.width = size;
               canvas.height = size;
               const ctx = canvas.getContext("2d");
-              
+
               if (!ctx) {
                 addStatus("Canvas error: no 2D context", "error");
                 return;
               }
-              
+
               addStatus("Canvas created, cropping image...");
-              
+
               const side = Math.min(img.width, img.height);
               const sx = (img.width - side) / 2;
               const sy = (img.height - side) / 2;
               ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-              
+
               addStatus("Image drawn to canvas");
-              
+
               const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
               addStatus(`Data URL: ${dataUrl.length} bytes`);
-              
+
               bgPreview.src = dataUrl;
               bgPreview.classList.remove("hidden");
               addStatus("Preview updated, sending to plugin...");
-              
+
               sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
               addStatus("Background save command sent", "success");
             } catch (e) {
               addStatus(`Processing error: ${e.message}`, "error");
             }
           };
-          
+
           img.onerror = (e) => {
             clearTimeout(imgLoadTimeout);
             addStatus(`Image load failed: ${e.type || "unknown error"}`, "error");
           };
-          
+
           img.onabort = () => {
             clearTimeout(imgLoadTimeout);
             addStatus("Image load aborted", "error");
           };
-          
+
           addStatus("Loading image...");
-          
-          // Timeout after 5 seconds
+
           imgLoadTimeout = setTimeout(() => {
             addStatus("Image load timeout (5s)", "error");
           }, 5000);
-          
+
           img.src = reader.result;
-          
+
         } catch (e) {
           addStatus(`Exception: ${e.message}`, "error");
         }
       };
-      
+
       addStatus("Reading file...");
       reader.readAsDataURL(file);
     });
@@ -756,7 +739,6 @@
       sendCommand({ command: "resetBackground" });
     });
 
-    // ---- Slot selection and auto-apply of name/date edits ----
     slotSelect.addEventListener("change", () => {
       hideDeleteWarning();
       showSelectedSlotFields();
