@@ -588,8 +588,8 @@ function updateContext(context) {
   if (!part) return;
 
   const colors = entry.controller === "Keypad"
-  ? (KEYPAD_COLORS[entry.uuid] || DEFAULT_COLORS)
-  : DIAL_COLORS;
+    ? (KEYPAD_COLORS[entry.uuid] || DEFAULT_COLORS)
+    : DIAL_COLORS;
 
   const v = values();
   let display;
@@ -613,15 +613,8 @@ function updateContext(context) {
     const labelSize = Math.min(LABEL_FONT_SIZE, 28);
     const numberSize = Math.min(NUMBER_FONT_SIZE, 54);
 
-    const background = KEYPAD_BACKGROUND
-      ? `
-      <image
-        href="data:${KEYPAD_BACKGROUND.mime};base64,${KEYPAD_BACKGROUND.base64}"
-        x="0" y="0" width="144" height="144"
-        preserveAspectRatio="xMidYMid slice"/>
-      <rect width="144" height="144" fill="#000000" opacity="0.25"/>
-    `
-      : `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
+    const background =
+      `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
 
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg"
@@ -632,7 +625,7 @@ function updateContext(context) {
               font-family="Arial, sans-serif"
               font-size="${labelSize}"
               font-weight="600"
-              fill="${colors.labelColor}"${part.label}</text>
+              fill="${colors.labelColor}">${part.label}</text>
         <text x="72" y="105"
               text-anchor="middle"
               textLength="120"
@@ -640,7 +633,7 @@ function updateContext(context) {
               font-family="Arial, sans-serif"
               font-size="${numberSize}"
               font-weight="700"
-              fill="${colors.numberColor}"${display}</text>
+              fill="${colors.numberColor}">${display}</text>
       </svg>
     `;
 

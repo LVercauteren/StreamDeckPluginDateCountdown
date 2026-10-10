@@ -236,7 +236,19 @@
     window.connectElgatoStreamDeckSocket =
       function (port, uuid, registerEvent, info, actionInfo) {
         pluginUUID = uuid;
-        console.log("Countdown actionInfo:", actionInfo);
+
+        let parsedActionInfo = {};
+
+        try {
+          parsedActionInfo = typeof actionInfo === "string"
+            ? JSON.parse(actionInfo)
+            : (actionInfo || {});
+        } catch (error) {
+          parsedActionInfo = {};
+        }
+
+        console.log("Countdown actionInfo:", parsedActionInfo);
+
         socket = new WebSocket("ws://127.0.0.1:" + port);
 
         socket.onopen = function () {
@@ -367,12 +379,21 @@
       status.textContent = "Font sizes saved.";
     });
 
+
     saveColorsButton.addEventListener("click", () => {
+      const action = parsedActionInfo.action || "";
+      const controller =
+        parsedActionInfo.payload?.controller ||
+        parsedActionInfo.controller ||
+        "";
+
       send({
         event: "sendToPlugin",
         context: pluginUUID,
         payload: {
           command: "saveColorSettings",
+          action,
+          controller,
           colors: {
             backgroundColor: backgroundColor.value,
             numberColor: numberColor.value,
@@ -383,6 +404,7 @@
 
       status.textContent = "Saving colors…";
     });
+
 
 
     backgroundImage.addEventListener("change", () => {

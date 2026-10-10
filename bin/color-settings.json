@@ -1,0 +1,8 @@
+{
+  "dials": {
+    "backgroundColor": "#000000",
+    "labelColor": "#2929dc",
+    "numberColor": "#ff1d59"
+  },
+  "keypad": {}
+}
