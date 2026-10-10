@@ -80,6 +80,9 @@ If left empty, the countdown simply shows zero.
   <img src="imgs/example1.gif" alt="Demo">
 </p>
 Message when completed:
+
+
+<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="LVercauteren" data-color="#888686" data-emoji="🍺"  data-font="Cookie" data-text="Buy me a beer" data-outline-color="#ffffff" data-font-color="#ffffff" data-coffee-color="#FFDD00" ></script>
 <img src="./imgs/example6.png" alt="Demo">
 Settings:
 <img src="./imgs/example5.png" alt="Demo">
