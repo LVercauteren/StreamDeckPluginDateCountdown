@@ -37,6 +37,10 @@
       transform: translateX(65px);
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     h3 {
       margin: 5px 0 4px;
       font-size: 12px;
@@ -152,10 +156,30 @@
       background: #303136;
     }
 
+    button.danger {
+      background: #7a2a2a;
+      border-color: #a33b3b;
+    }
+
+    button.danger:hover {
+      background: #8f3232;
+    }
+
     hr {
       margin: 7px 0;
       border: 0;
       border-top: 1px solid #48494e;
+    }
+
+    .row {
+      display: flex;
+      gap: 6px;
+      margin-top: 5px;
+    }
+
+    .row button {
+      flex: 1;
+      margin-top: 0;
     }
 
     .colors-inline {
@@ -190,6 +214,27 @@
       margin: 0 0 1px;
     }
 
+    #bgPreview {
+      display: block;
+      width: 72px;
+      height: 72px;
+      margin: 4px 0;
+      object-fit: cover;
+      border-radius: 3px;
+      border: 1px solid #555558;
+    }
+
+    #deleteWarning {
+      margin: 5px 0 0;
+      padding: 5px 6px;
+      color: #f0c0c0;
+      background: #3d2a2a;
+      border: 1px solid #7a2a2a;
+      border-radius: 3px;
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
     #status {
       margin-top: 5px;
       color: #92949b;
@@ -202,9 +247,9 @@
 <body>
   <div class="settings-content">
     <h3>Countdown</h3>
-    <p>Choose which countdown this button or dial shows. Changes apply immediately.</p>
+    <p>Choose which countdown this <span id="deviceWord">button</span> shows. Changes apply immediately.</p>
 
-    <label for="slotSelect">Countdown for this button</label>
+    <label for="slotSelect">Countdown</label>
     <select id="slotSelect"></select>
 
     <label for="slotName" style="margin-top: 6px;">Name</label>
@@ -212,9 +257,17 @@
     <label for="slotDate" style="margin-top: 6px;">Target date and time</label>
     <input id="slotDate" type="datetime-local" step="60">
 
-    <div style="display: flex; gap: 6px; margin-top: 5px;">
-      <button id="addSlotButton" type="button" style="flex: 1; margin-top: 0;">Add new</button>
-      <button id="deleteSlotButton" type="button" style="flex: 1; margin-top: 0;">Delete</button>
+    <div class="row" id="slotButtons">
+      <button id="addSlotButton" type="button">Add new</button>
+      <button id="deleteSlotButton" type="button">Delete</button>
+    </div>
+
+    <div id="deleteWarning" class="hidden">
+      <div id="deleteWarningText"></div>
+      <div class="row">
+        <button id="confirmDeleteButton" type="button" class="danger">Yes, delete</button>
+        <button id="cancelDeleteButton" type="button">Cancel</button>
+      </div>
     </div>
 
     <hr>
@@ -226,21 +279,40 @@
       <input id="numberSize" type="range" min="12" max="54" value="40">
     </div>
 
-    <hr>
-    <h3 id="colorSectionTitle">Countdown Colors</h3>
-    <div class="colors-inline">
-      <div class="color-inline-item">
-        <label for="backgroundColor">BG:</label>
-        <input id="backgroundColor" type="color" value="#111827">
+    <!-- Keypad only -->
+    <div id="keypadOnly">
+      <hr>
+      <h3 id="colorSectionTitle">Countdown Colors</h3>
+      <div class="colors-inline">
+        <div class="color-inline-item">
+          <label for="backgroundColor">BG:</label>
+          <input id="backgroundColor" type="color" value="#111827">
+        </div>
+        <div class="color-inline-item">
+          <label for="numberColor">Number:</label>
+          <input id="numberColor" type="color" value="#FFFFFF">
+        </div>
+        <div class="color-inline-item">
+          <label for="labelColor">Label:</label>
+          <input id="labelColor" type="color" value="#D8D8DC">
+        </div>
       </div>
-      <div class="color-inline-item">
-        <label for="numberColor">Number:</label>
-        <input id="numberColor" type="color" value="#FFFFFF">
+
+      <hr>
+      <h3>Keypad Background Image</h3>
+      <p>Used by all countdown keypads. PNG, JPG or WebP; it is resized automatically.</p>
+      <img id="bgPreview" class="hidden" alt="Background preview">
+      <input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+      <div class="row">
+        <button id="bgChooseButton" type="button">Choose image…</button>
+        <button id="bgResetButton" type="button">Remove</button>
       </div>
-      <div class="color-inline-item">
-        <label for="labelColor">Label:</label>
-        <input id="labelColor" type="color" value="#D8D8DC">
-      </div>
+    </div>
+
+    <!-- Dial only -->
+    <div id="dialOnly" class="hidden">
+      <hr>
+      <p>Dial colors are controlled by Stream Deck and can't be customized. Keypads support custom colors and a background image.</p>
     </div>
 
     <div id="status"></div>
@@ -252,22 +324,34 @@
     let currentActionUUID = null;
     let currentController = "Encoder";
     let countdownSlots = [];
+    let deleteTimer = null;
 
-    const statusEl = document.getElementById("status");
-    const slotSelect = document.getElementById("slotSelect");
-    const slotName = document.getElementById("slotName");
-    const slotDate = document.getElementById("slotDate");
-    const addSlotButton = document.getElementById("addSlotButton");
-    const deleteSlotButton = document.getElementById("deleteSlotButton");
-    const colorSectionTitle = document.getElementById("colorSectionTitle");
+    const $ = id => document.getElementById(id);
 
-    const labelSize = document.getElementById("labelSize");
-    const numberSize = document.getElementById("numberSize");
-    const labelSizeValue = document.getElementById("labelSizeValue");
-    const numberSizeValue = document.getElementById("numberSizeValue");
-    const backgroundColor = document.getElementById("backgroundColor");
-    const numberColor = document.getElementById("numberColor");
-    const labelColor = document.getElementById("labelColor");
+    const statusEl = $("status");
+    const slotSelect = $("slotSelect");
+    const slotName = $("slotName");
+    const slotDate = $("slotDate");
+    const addSlotButton = $("addSlotButton");
+    const deleteSlotButton = $("deleteSlotButton");
+    const deleteWarning = $("deleteWarning");
+    const deleteWarningText = $("deleteWarningText");
+    const confirmDeleteButton = $("confirmDeleteButton");
+    const cancelDeleteButton = $("cancelDeleteButton");
+    const colorSectionTitle = $("colorSectionTitle");
+
+    const labelSize = $("labelSize");
+    const numberSize = $("numberSize");
+    const labelSizeValue = $("labelSizeValue");
+    const numberSizeValue = $("numberSizeValue");
+    const backgroundColor = $("backgroundColor");
+    const numberColor = $("numberColor");
+    const labelColor = $("labelColor");
+
+    const bgPreview = $("bgPreview");
+    const bgFile = $("bgFile");
+    const bgChooseButton = $("bgChooseButton");
+    const bgResetButton = $("bgResetButton");
 
     const ACTION_NAMES = {
       "com.wowforever.countdown.days": "Days",
@@ -278,6 +362,17 @@
 
     function updateStatus(message) {
       if (statusEl) statusEl.textContent = message;
+    }
+
+    function isKeypad() {
+      return currentController === "Keypad";
+    }
+
+    function applyControllerLayout() {
+      const keypad = isKeypad();
+      $("keypadOnly").classList.toggle("hidden", !keypad);
+      $("dialOnly").classList.toggle("hidden", keypad);
+      $("deviceWord").textContent = keypad ? "button" : "dial";
     }
 
     function toLocalInputValue(isoDate) {
@@ -328,8 +423,46 @@
       const index = Number.isInteger(selectedIndex) ? selectedIndex : 0;
       slotSelect.value = String(Math.min(Math.max(index, 0), Math.max(countdownSlots.length - 1, 0)));
       showSelectedSlotFields();
+      hideDeleteWarning();
     }
 
+    // ---- Delete with confirmation ----
+    function hideDeleteWarning() {
+      clearTimeout(deleteTimer);
+      deleteTimer = null;
+      deleteWarning.classList.add("hidden");
+      $("slotButtons").classList.remove("hidden");
+    }
+
+    deleteSlotButton.addEventListener("click", () => {
+      if (countdownSlots.length === 0) return;
+
+      if (countdownSlots.length <= 1) {
+        updateStatus("You need at least one countdown.");
+        return;
+      }
+
+      const slot = countdownSlots[Number(slotSelect.value)];
+      const name = slot && slot.name ? `"${slot.name}"` : "this countdown";
+      deleteWarningText.textContent =
+        `Delete ${name}? Any button or dial using it will switch to the first countdown. This can't be undone.`;
+      deleteWarning.classList.remove("hidden");
+      $("slotButtons").classList.add("hidden");
+
+      clearTimeout(deleteTimer);
+      deleteTimer = setTimeout(hideDeleteWarning, 8000);
+    });
+
+    cancelDeleteButton.addEventListener("click", hideDeleteWarning);
+
+    confirmDeleteButton.addEventListener("click", () => {
+      const index = Number(slotSelect.value);
+      hideDeleteWarning();
+      if (!countdownSlots[index]) return;
+      sendCommand({ command: "deleteCountdownSlot", index });
+    });
+
+    // ---- Connection ----
     window.connectElgatoStreamDeckSocket = function (port, uuid, registerEvent, info, actionInfo) {
       pluginUUID = uuid;
 
@@ -344,6 +477,8 @@
 
       currentActionUUID = actionInfoObj?.action || null;
       currentController = actionInfoObj?.payload?.controller || actionInfoObj?.controller || "Encoder";
+
+      applyControllerLayout();
 
       if (currentActionUUID) {
         const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
@@ -360,11 +495,16 @@
           controller: currentController,
           action: currentActionUUID
         });
-        sendCommand({
-          command: "getColorSettings",
-          controller: currentController,
-          action: currentActionUUID
-        });
+
+        if (isKeypad()) {
+          sendCommand({
+            command: "getColorSettings",
+            controller: currentController,
+            action: currentActionUUID
+          });
+          sendCommand({ command: "getBackgroundSettings" });
+        }
+
         updateStatus("Loading saved settings…");
       };
 
@@ -384,26 +524,35 @@
           updateStatus("");
         }
 
-        if (payload.slotError) {
-          updateStatus(payload.slotError);
+        if (payload.slotError) updateStatus(payload.slotError);
+        if (payload.colorsError) updateStatus(payload.colorsError);
+        if (payload.backgroundError) updateStatus(payload.backgroundError);
+
+        if (payload.backgroundSaved) updateStatus("Background applied.");
+        if (payload.backgroundReset) {
+          bgPreview.classList.add("hidden");
+          bgPreview.removeAttribute("src");
+          updateStatus("Background removed.");
         }
 
-        if (payload.colorsError) {
-          updateStatus(payload.colorsError);
+        if (payload.backgroundDataUrl !== undefined) {
+          if (payload.backgroundDataUrl) {
+            bgPreview.src = payload.backgroundDataUrl;
+            bgPreview.classList.remove("hidden");
+          } else {
+            bgPreview.classList.add("hidden");
+            bgPreview.removeAttribute("src");
+          }
         }
 
         // Replies to our own saves must not overwrite controls the user may still be dragging.
-        if (payload.fontSaved || payload.colorsSaved) {
-          return;
+        if (payload.fontSaved || payload.colorsSaved) return;
+
+        if (payload.dialColors && !isKeypad()) {
+          // Dials ignore colors; nothing to show.
         }
 
-        if (payload.dialColors && currentController !== "Keypad") {
-          backgroundColor.value = payload.dialColors.backgroundColor || "#111827";
-          numberColor.value = payload.dialColors.numberColor || "#FFFFFF";
-          labelColor.value = payload.dialColors.labelColor || "#D8D8DC";
-        }
-
-        if (payload.keypadColors && currentController === "Keypad") {
+        if (payload.keypadColors && isKeypad()) {
           const selected = payload.keypadColors[currentActionUUID];
           if (selected) {
             backgroundColor.value = selected.backgroundColor || "#111827";
@@ -449,8 +598,9 @@
       applyFont();
     });
 
-    // ---- Auto-apply: colors ----
+    // ---- Auto-apply: colors (keypad only) ----
     const applyColors = debounce(() => {
+      if (!isKeypad()) return;
       sendCommand({
         command: "saveColorSettings",
         action: currentActionUUID,
@@ -467,8 +617,49 @@
       el.addEventListener("input", applyColors);
     });
 
+    // ---- Background image (keypad only) ----
+    bgChooseButton.addEventListener("click", () => bgFile.click());
+
+    bgFile.addEventListener("change", () => {
+      const file = bgFile.files && bgFile.files[0];
+      bgFile.value = "";
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onerror = () => updateStatus("Could not read that image.");
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => updateStatus("That file is not a valid image.");
+        img.onload = () => {
+          // Center-crop to a 144x144 square and re-encode so it stays well under the size limit.
+          const size = 144;
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2;
+          const sy = (img.height - side) / 2;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+          bgPreview.src = dataUrl;
+          bgPreview.classList.remove("hidden");
+          sendCommand({ command: "saveBackground", backgroundDataUrl: dataUrl });
+          updateStatus("Applying background…");
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    bgResetButton.addEventListener("click", () => {
+      sendCommand({ command: "resetBackground" });
+    });
+
     // ---- Slot selection and auto-apply of name/date edits ----
     slotSelect.addEventListener("change", () => {
+      hideDeleteWarning();
       showSelectedSlotFields();
       sendCommand({ command: "selectCountdownSlot", index: Number(slotSelect.value) });
     });
@@ -509,11 +700,6 @@
         name: fields.name,
         targetDate: fields.targetDate
       });
-    });
-
-    deleteSlotButton.addEventListener("click", () => {
-      if (countdownSlots.length === 0) return;
-      sendCommand({ command: "deleteCountdownSlot", index: Number(slotSelect.value) });
     });
   </script>
 </body>
