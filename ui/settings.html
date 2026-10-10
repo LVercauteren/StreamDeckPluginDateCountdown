@@ -275,6 +275,8 @@
     <input id="slotName" type="text" placeholder="e.g. Holiday">
     <label for="slotDate" style="margin-top: 6px;">Target date and time</label>
     <input id="slotDate" type="datetime-local" step="60">
+    <label for="slotTimeZone" style="margin-top: 6px;">Time zone</label>
+    <select id="slotTimeZone"></select>
 
     <div class="row" id="slotButtons">
       <button id="addSlotButton" type="button">Add new</button>
@@ -287,6 +289,8 @@
       <input id="newSlotName" type="text" placeholder="e.g. Holiday">
       <label for="newSlotDate" style="margin-top: 6px;">Target date and time</label>
       <input id="newSlotDate" type="datetime-local" step="60">
+      <label for="newSlotTimeZone" style="margin-top: 6px;">Time zone</label>
+      <select id="newSlotTimeZone"></select>
       <div class="row">
         <button id="createSlotButton" type="button">Create</button>
         <button id="cancelAddButton" type="button">Cancel</button>
@@ -357,6 +361,8 @@
     const addForm = $("addForm");
     const newSlotName = $("newSlotName");
     const newSlotDate = $("newSlotDate");
+    const slotTimeZone = $("slotTimeZone");
+    const newSlotTimeZone = $("newSlotTimeZone");
     const createSlotButton = $("createSlotButton");
     const cancelAddButton = $("cancelAddButton");
     const deleteWarning = $("deleteWarning");
@@ -413,13 +419,105 @@
       $("deviceWord").textContent = keypad ? "button" : "dial";
     }
 
-    function toLocalInputValue(isoDate) {
-      const date = new Date(isoDate);
-      if (Number.isNaN(date.getTime())) return "";
-      const pad = n => String(n).padStart(2, "0");
-      return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) +
-        "T" + pad(date.getHours()) + ":" + pad(date.getMinutes());
+    // Time zone helpers (Intl only). "local" means this computer's zone.
+    function listTimeZones() {
+      try {
+        if (typeof Intl.supportedValuesOf === "function") {
+          const zones = Intl.supportedValuesOf("timeZone");
+          if (zones.length > 0) return zones;
+        }
+      } catch { }
+      return [
+        "UTC", "Europe/London", "Europe/Brussels", "Europe/Paris", "Europe/Berlin",
+        "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+        "Asia/Dubai", "Asia/Kolkata", "Asia/Shanghai", "Asia/Tokyo",
+        "Australia/Sydney", "Pacific/Auckland"
+      ];
     }
+
+    function fillTimeZoneSelect(select) {
+      const local = document.createElement("option");
+      local.value = "local";
+      local.textContent = "Local (this computer)";
+      select.appendChild(local);
+      listTimeZones().forEach(zone => {
+        const option = document.createElement("option");
+        option.value = zone;
+        option.textContent = zone;
+        select.appendChild(option);
+      });
+    }
+
+    function setTimeZoneSelect(select, timeZone) {
+      const wanted = timeZone || "local";
+      if (!Array.from(select.options).some(o => o.value === wanted)) {
+        const option = document.createElement("option");
+        option.value = wanted;
+        option.textContent = wanted;
+        select.appendChild(option);
+      }
+      select.value = wanted;
+    }
+
+    function isValidTimeZone(timeZone) {
+      if (!timeZone || timeZone === "local") return true;
+      try {
+        new Intl.DateTimeFormat(undefined, { timeZone });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // Wall-clock fields of an instant as seen in the zone, as UTC-based ms.
+    function zonedFieldsAsUtcMs(ms, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hourCycle: "h23",
+        year: "numeric", month: "numeric", day: "numeric",
+        hour: "numeric", minute: "numeric", second: "numeric"
+      }).formatToParts(new Date(ms));
+      const v = {};
+      parts.forEach(p => { v[p.type] = Number(p.value); });
+      return Date.UTC(v.year, v.month - 1, v.day, v.hour, v.minute, v.second);
+    }
+
+    // "YYYY-MM-DDTHH:mm" wall time in timeZone -> UTC ms (NaN if invalid).
+    function zonedWallTimeToUtc(localValue, timeZone) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(localValue || "");
+      if (!m) return NaN;
+      if (!timeZone || timeZone === "local") {
+        return new Date(localValue).getTime();
+      }
+      if (!isValidTimeZone(timeZone)) return NaN;
+      const wall = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+      // Adjust by the zone offset at the guess; repeat so DST changes settle.
+      let guess = wall;
+      for (let i = 0; i < 3; i++) {
+        const offset = zonedFieldsAsUtcMs(guess, timeZone) - guess;
+        const next = wall - offset;
+        if (next === guess) break;
+        guess = next;
+      }
+      return guess;
+    }
+
+    function utcToZonedInputValue(isoDate, timeZone) {
+      const ms = Date.parse(isoDate);
+      if (Number.isNaN(ms)) return "";
+      const pad = n => String(n).padStart(2, "0");
+      if (!timeZone || timeZone === "local" || !isValidTimeZone(timeZone)) {
+        const d = new Date(ms);
+        return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+          "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+      }
+      const d = new Date(zonedFieldsAsUtcMs(ms, timeZone));
+      return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) +
+        "T" + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
+    }
+
+    fillTimeZoneSelect(slotTimeZone);
+    fillTimeZoneSelect(newSlotTimeZone);
 
     function send(message) {
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -444,7 +542,9 @@
     function showSelectedSlotFields() {
       const slot = countdownSlots[Number(slotSelect.value)];
       slotName.value = slot ? slot.name || "" : "";
-      slotDate.value = slot ? toLocalInputValue(slot.targetDate) : "";
+      const zone = slot && slot.timeZone ? slot.timeZone : "local";
+      setTimeZoneSelect(slotTimeZone, zone);
+      slotDate.value = slot ? utcToZonedInputValue(slot.targetDate, zone) : "";
     }
 
     function renderSlots(slots, selectedIndex) {
@@ -476,6 +576,7 @@
       hideDeleteWarning();
       newSlotName.value = "";
       newSlotDate.value = "";
+      newSlotTimeZone.value = "local";
       addForm.classList.remove("hidden");
       $("slotButtons").classList.add("hidden");
       newSlotName.focus();
@@ -495,8 +596,8 @@
         addStatus("Please choose a date and time for the new countdown.", "error");
         return;
       }
-      const date = new Date(newSlotDate.value);
-      if (Number.isNaN(date.getTime())) {
+      const ms = zonedWallTimeToUtc(newSlotDate.value, newSlotTimeZone.value);
+      if (Number.isNaN(ms)) {
         addStatus("That date and time is not valid.", "error");
         return;
       }
@@ -505,7 +606,8 @@
       sendCommand({
         command: "addCountdownSlot",
         name: newSlotName.value.trim(),
-        targetDate: date.toISOString()
+        targetDate: new Date(ms).toISOString(),
+        timeZone: newSlotTimeZone.value
       });
     });
 
@@ -692,12 +794,16 @@
         if (showErrors) addStatus("Please choose a date and time first.", "error");
         return null;
       }
-      const date = new Date(slotDate.value);
-      if (Number.isNaN(date.getTime())) {
+      const ms = zonedWallTimeToUtc(slotDate.value, slotTimeZone.value);
+      if (Number.isNaN(ms)) {
         if (showErrors) addStatus("That date and time is not valid.", "error");
         return null;
       }
-      return { name: slotName.value.trim(), targetDate: date.toISOString() };
+      return {
+        name: slotName.value.trim(),
+        targetDate: new Date(ms).toISOString(),
+        timeZone: slotTimeZone.value
+      };
     }
 
     function applySlotEdit() {
@@ -708,12 +814,15 @@
         command: "saveCountdownSlot",
         index: Number(slotSelect.value),
         name: fields.name,
-        targetDate: fields.targetDate
+        targetDate: fields.targetDate,
+        timeZone: fields.timeZone
       });
     }
 
     slotName.addEventListener("change", applySlotEdit);
     slotDate.addEventListener("change", applySlotEdit);
+    // Changing the zone keeps the displayed wall-clock time and re-interprets it in the new zone.
+    slotTimeZone.addEventListener("change", applySlotEdit);
   </script>
 </body>
 
