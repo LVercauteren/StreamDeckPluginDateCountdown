@@ -86,4 +86,5 @@ Settings:
 <img src="./imgs/example4.png" alt="Demo">
 
 
-[![Buy me a beer](https://img.shields.io/badge/Buy%20me%20a%20beer-%23FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/LVercauteren)
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60">](https://www.buymeacoffee.com/LVercauteren)
+<a href="https://www.buymeacoffee.com/LVercauteren" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
