@@ -1,3 +1,5 @@
+[![Buy me a beer](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=LVercauteren&button_colour=888686&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00)](https://www.buymeacoffee.com/LVercauteren)
+
 # Date Countdown
 
 A Stream Deck plugin that shows a live countdown to a date and time you choose.
@@ -86,4 +88,4 @@ Settings:
 <img src="./imgs/example4.png" alt="Demo">
 
 
-<a href="https://www.buymeacoffee.com/LVercauteren"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a beer&emoji=🍺&slug=LVercauteren&button_colour=888686&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" /></a>
+
