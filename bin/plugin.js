@@ -422,11 +422,20 @@ function handleMessage(raw) {
             base64: imageBuffer.toString("base64")
           };
 
-          fs.writeFileSync(
-            BACKGROUND_FILE,
-            JSON.stringify(KEYPAD_BACKGROUND),
-            "utf8"
-          );
+          try {
+            fs.writeFileSync(
+              BACKGROUND_FILE,
+              JSON.stringify(KEYPAD_BACKGROUND),
+              "utf8"
+            );
+          } catch (error) {
+            send({
+              event: "sendToPropertyInspector",
+              context: msg.context,
+              payload: { backgroundError: "Could not save the image: " + error.message }
+            });
+            return;
+          }
 
           updateAll();
 
@@ -734,20 +743,20 @@ function updateContext(context) {
     const labelFontSize = Math.min(font.labelSize, 28);
     const numberFontSize = Math.min(font.numberSize, 54);
 
+    // Stream Deck's SVG renderer needs the xlink namespace and xlink:href
+    // for embedded images; a plain href is silently ignored.
     const background = KEYPAD_BACKGROUND
       ? `
-        <image href="data:${KEYPAD_BACKGROUND.mime};base64,${KEYPAD_BACKGROUND.base64}" x="0" y="0" width="144" height="144" preserveAspectRatio="xMidYMid slice"/>
-        <rect width="144" height="144" fill="#000000" opacity="0.25"/>
+        <image xlink:href="data:${KEYPAD_BACKGROUND.mime};base64,${KEYPAD_BACKGROUND.base64}" x="0" y="0" width="144" height="144" preserveAspectRatio="xMidYMid slice"/>
+        <rect width="144" height="144" fill="#000000" fill-opacity="0.25"/>
       `
       : `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
 
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
         ${background}
         <text x="72" y="43" text-anchor="middle" font-family="Arial, sans-serif" font-size="${labelFontSize}" font-weight="600" fill="${colors.labelColor}">${part.label}</text>
         <text x="72" y="105" text-anchor="middle" textLength="120" lengthAdjust="spacingAndGlyphs" font-family="Arial, sans-serif" font-size="${numberFontSize}" font-weight="700" fill="${colors.numberColor}">${display}</text>
-      </svg>
-    `;
+      </svg>`;
 
     send({
       event: "setImage",
