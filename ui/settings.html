@@ -192,7 +192,6 @@
 
     const input = document.getElementById("targetDate");
     const statusEl = document.getElementById("status");
-    const debug = document.getElementById("debug");
     const colorSectionTitle = document.getElementById("colorSectionTitle");
 
     const labelSize = document.getElementById("labelSize");
@@ -250,13 +249,8 @@
         }
       }
 
-      addDebug("Parsed actionInfo: " + JSON.stringify(actionInfoObj, null, 2));
-
       currentActionUUID = actionInfoObj?.action || null;
       currentController = actionInfoObj?.payload?.controller || actionInfoObj?.controller || "Encoder";
-
-      addDebug("currentActionUUID = " + currentActionUUID);
-      addDebug("currentController = " + currentController);
 
       if (currentActionUUID) {
         const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
@@ -269,7 +263,6 @@
 
       socket.onopen = function () {
         console.log("WoW Forever Countdown: Property Inspector connected.");
-        addDebug("WebSocket connected");
         send({ event: registerEvent, uuid: pluginUUID });
         send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getTargetDate" } });
         send({
