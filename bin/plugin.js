@@ -17,6 +17,19 @@ const DEFAULT_FONT = {
   numberSize: 40
 };
 
+const CUSTOM_UUID = "com.lvercauteren.datecountdown.custom";
+const CUSTOM_MAX_NUMBER_SIZE = 25;
+const CUSTOM_DEFAULT_NUMBER_SIZE = 25;
+const SUFFIX_OPACITY = 0.65;
+
+// The Countdown action caps its number size; legacy actions keep their own range.
+function numberSizeFor(uuid, value) {
+  const n = Number(value);
+  if (uuid !== CUSTOM_UUID) return n || DEFAULT_FONT.numberSize;
+  if (!Number.isFinite(n) || n <= 0) return CUSTOM_DEFAULT_NUMBER_SIZE;
+  return Math.min(n, CUSTOM_MAX_NUMBER_SIZE);
+}
+
 let pluginId = null;
 
 const PARTS = {
@@ -406,13 +419,18 @@ function handleMessage(raw) {
         context: msg.context,
         payload: {
           labelSize: entry ? (entry.labelSize || DEFAULT_FONT.labelSize) : DEFAULT_FONT.labelSize,
-          numberSize: entry ? (entry.numberSize || DEFAULT_FONT.numberSize) : DEFAULT_FONT.numberSize
+          numberSize: entry ? numberSizeFor(entry.uuid, entry.numberSize) : numberSizeFor(payload.action, 0)
         }
       });
 
     } else if (payload.command === "saveFontSettings") {
-      const labelSize = Number(payload.labelSize);
-      const numberSize = Number(payload.numberSize);
+      const entry = contexts.get(msg.context);
+      const isCustom = entry ? entry.uuid === CUSTOM_UUID : payload.action === CUSTOM_UUID;
+      const labelSize = isCustom && payload.labelSize === undefined
+        ? (entry ? entry.labelSize : DEFAULT_FONT.labelSize)
+        : Number(payload.labelSize);
+      const rawNumberSize = Number(payload.numberSize);
+      const numberSize = isCustom ? Math.min(rawNumberSize, CUSTOM_MAX_NUMBER_SIZE) : rawNumberSize;
 
       if (
         Number.isFinite(labelSize) &&
@@ -420,7 +438,6 @@ function handleMessage(raw) {
         Number.isFinite(numberSize) &&
         numberSize >= 12 && numberSize <= 60
       ) {
-        const entry = contexts.get(msg.context);
         if (entry) {
           entry.labelSize = labelSize;
           entry.numberSize = numberSize;
@@ -610,7 +627,7 @@ function handleMessage(raw) {
       numberColor: settings.numberColor || DEFAULT_COLORS.numberColor,
       labelColor: settings.labelColor || DEFAULT_COLORS.labelColor,
       labelSize: settings.labelSize || DEFAULT_FONT.labelSize,
-      numberSize: settings.numberSize || DEFAULT_FONT.numberSize,
+      numberSize: numberSizeFor(msg.action, settings.numberSize),
       units: normalizeUnits(settings.units, msg.action),
       reachedText: normalizeReachedText(settings.reachedText)
     });
@@ -629,7 +646,7 @@ function handleMessage(raw) {
       entry.numberColor = settings.numberColor || DEFAULT_COLORS.numberColor;
       entry.labelColor = settings.labelColor || DEFAULT_COLORS.labelColor;
       entry.labelSize = settings.labelSize || DEFAULT_FONT.labelSize;
-      entry.numberSize = settings.numberSize || DEFAULT_FONT.numberSize;
+      entry.numberSize = numberSizeFor(entry.uuid, settings.numberSize);
       entry.units = normalizeUnits(settings.units, entry.uuid);
       entry.reachedText = normalizeReachedText(settings.reachedText);
       updateContext(msg.context);
@@ -665,27 +682,43 @@ function rowsForUnits(values, units) {
   }));
 }
 
-// Stacked keypad rows, vertically centered; digits right-aligned so they line up in a column.
-function stackedRowsSvg(rows, colors, font) {
+// Stacked rows inside a box, vertically centered; digits right-aligned so they line up in a column.
+// The unit suffix reuses the number color at reduced opacity.
+function stackedRowsSvg(rows, colors, numberSize, box) {
   const n = rows.length;
-  const areaTop = 8, areaHeight = 128, maxWidth = 124;
-  const rowHeight = areaHeight / n;
+  const rowHeight = box.height / n;
   const digits = Math.max(...rows.map(r => r.number.length));
   const widthFor = size => {
     const suffix = Math.max(10, Math.round(size * 0.55));
     return { suffix, num: digits * size * 0.62, total: digits * size * 0.62 + 4 + suffix * 0.62 };
   };
-  let size = Math.max(10, Math.min(font.numberSize, 54, Math.floor(rowHeight * 0.8)));
-  while (size > 10 && widthFor(size).total > maxWidth) size--;
+  let size = Math.max(10, Math.min(numberSize, box.maxSize, Math.floor(rowHeight * 0.8)));
+  while (size > 10 && widthFor(size).total > box.maxWidth) size--;
   const w = widthFor(size);
-  const suffixSize = Math.min(w.suffix, Math.max(10, font.labelSize));
-  const startX = Math.round((144 - w.total) / 2);
+  const startX = Math.round((box.width - w.total) / 2);
   const numberX = Math.round(startX + w.num);
   return rows.map((r, i) => {
-    const y = Math.round(areaTop + rowHeight * i + rowHeight / 2 + size * 0.35);
+    const y = Math.round(box.top + rowHeight * i + rowHeight / 2 + size * 0.35);
     return `<text x="${numberX}" y="${y}" text-anchor="end" font-family="Arial, sans-serif" font-size="${size}" font-weight="700" fill="${colors.numberColor}">${escapeXml(r.number)}</text>` +
-      `<text x="${numberX + 4}" y="${y}" font-family="Arial, sans-serif" font-size="${suffixSize}" font-weight="600" fill="${colors.labelColor}">${r.suffix}</text>`;
+      `<text x="${numberX + 4}" y="${y}" font-family="Arial, sans-serif" font-size="${w.suffix}" font-weight="600" fill="${colors.numberColor}" fill-opacity="${SUFFIX_OPACITY}">${r.suffix}</text>`;
   }).join("\n        ");
+}
+
+// Dial rows pixmap (200x76), either the stacked rows or the reached text.
+function dialRowsSvg(rows, reachedText, colors, numberSize) {
+  const width = 200, height = 76;
+  let body;
+  if (rows) {
+    body = stackedRowsSvg(rows, colors, numberSize, { width, top: 0, height, maxWidth: 190, maxSize: 25 });
+  } else {
+    const fit = fitText(reachedText, Math.min(numberSize, 25), 190, 12);
+    const fitAttr = fit.squeeze ? ' textLength="190" lengthAdjust="spacingAndGlyphs"' : "";
+    body = `<text x="100" y="${Math.round(height / 2 + fit.size * 0.35)}" text-anchor="middle"${fitAttr} font-family="Arial, sans-serif" font-size="${fit.size}" font-weight="700" fill="${colors.numberColor}">${escapeXml(reachedText)}</text>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        ${body}
+      </svg>`;
+  return "data:image/svg+xml;charset=utf8," + encodeURIComponent(svg);
 }
 
 function updateContext(context) {
@@ -703,7 +736,7 @@ function updateContext(context) {
 
   const font = {
     labelSize: entry.labelSize || DEFAULT_FONT.labelSize,
-    numberSize: entry.numberSize || DEFAULT_FONT.numberSize
+    numberSize: numberSizeFor(entry.uuid, entry.numberSize)
   };
 
   const targetMs = getSlotTargetMs(entry.slotIndex);
@@ -740,7 +773,7 @@ function updateContext(context) {
   if (entry.controller === "Keypad" && rows) {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
         <rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>
-        ${stackedRowsSvg(rows, colors, font)}
+        ${stackedRowsSvg(rows, colors, font.numberSize, { width: 144, top: 8, height: 128, maxWidth: 124, maxSize: 54 })}
       </svg>`;
 
     send({
@@ -780,6 +813,27 @@ function updateContext(context) {
         image: "data:image/svg+xml;charset=utf8," + encodeURIComponent(svg),
         target: 0,
         state: 0
+      }
+    });
+
+    return;
+  }
+
+  if (part.kind === "custom") {
+    // Dial: stacked rows (or the reached text) in a pixmap; the title is the countdown's name.
+    send({
+      event: "setFeedbackLayout",
+      context,
+      payload: { layout: "countdown-stack.json" }
+    });
+
+    const slot = COUNTDOWN_SLOTS[clampSlotIndex(entry.slotIndex)];
+    send({
+      event: "setFeedback",
+      context,
+      payload: {
+        title: slot ? slot.name : part.label,
+        rows: dialRowsSvg(rows, reachedText, { numberColor: DEFAULT_COLORS.numberColor }, font.numberSize)
       }
     });
 

@@ -1,0 +1,47 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "date-countdown-stack",
+	"controller": "Encoder",
+	"items": [
+		{
+			"key": "valueBackground",
+			"type": "pixmap",
+			"rect": [
+				0,
+				0,
+				200,
+				100
+			],
+			"value": "imgs/rect",
+			"zOrder": 0
+		},
+		{
+			"key": "title",
+			"type": "text",
+			"rect": [
+				0,
+				4,
+				200,
+				20
+			],
+			"font": {
+				"size": 14,
+				"weight": 600
+			},
+			"alignment": "center",
+			"value": "Countdown",
+			"zOrder": 1
+		},
+		{
+			"key": "rows",
+			"type": "pixmap",
+			"rect": [
+				0,
+				24,
+				200,
+				76
+			],
+			"zOrder": 1
+		}
+	]
+}
