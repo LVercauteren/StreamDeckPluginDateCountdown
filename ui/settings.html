@@ -6,7 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WoW Forever Countdown Settings</title>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 10px 12px 10px 70px;
@@ -14,7 +17,12 @@
       font-size: 12px;
       color: #d8d8dc;
     }
-    .settings-content { width: 100%; margin: 0; }
+
+    .settings-content {
+      width: 100%;
+      margin: 0;
+    }
+
     .color-row {
       display: flex;
       align-items: center;
@@ -22,29 +30,44 @@
       gap: 12px;
       margin: 8px 0;
     }
-    .color-row label { margin: 0; flex: 1; }
-    .color-row input[type="color"] {
-      width: 42px; min-width: 42px; height: 28px; min-height: 28px; padding: 2px; cursor: pointer;
+
+    .color-row label {
+      margin: 0;
+      flex: 1;
     }
+
+    .color-row input[type="color"] {
+      width: 42px;
+      min-width: 42px;
+      height: 28px;
+      min-height: 28px;
+      padding: 2px;
+      cursor: pointer;
+    }
+
     h3 {
       margin: 0 0 10px;
       font-size: 13px;
       font-weight: 600;
       color: #e8e8eb;
     }
+
     p {
       margin: 0 0 14px;
       color: #a4a5ab;
       font-size: 11px;
       line-height: 1.4;
     }
+
     label {
       display: block;
       margin: 0 0 5px;
       color: #bfc0c6;
       font-size: 11px;
     }
-    input, button {
+
+    input,
+    button {
       width: 100%;
       min-height: 29px;
       padding: 5px 8px;
@@ -52,6 +75,7 @@
       font-family: inherit;
       font-size: 12px;
     }
+
     input {
       color: #eeeeef;
       background: #38393e;
@@ -59,7 +83,11 @@
       color-scheme: dark;
       outline: none;
     }
-    input:focus { border-color: #1684e8; }
+
+    input:focus {
+      border-color: #1684e8;
+    }
+
     button {
       margin-top: 10px;
       color: #eeeeef;
@@ -67,14 +95,22 @@
       border: 1px solid #505158;
       cursor: pointer;
     }
-    button:hover { background: #46474d; }
-    button:active { background: #303136; }
+
+    button:hover {
+      background: #46474d;
+    }
+
+    button:active {
+      background: #303136;
+    }
+
     #status {
       margin-top: 9px;
       color: #92949b;
       font-size: 10px;
       line-height: 1.4;
     }
+
     .debug {
       background: #2a2b30;
       padding: 8px;
@@ -185,41 +221,30 @@
 
     window.connectElgatoStreamDeckSocket = function (port, uuid, registerEvent, info, actionInfo) {
       pluginUUID = uuid;
-      
-      addDebug("===== INIT =====");
-      addDebug("uuid: " + JSON.stringify(uuid));
-      addDebug("registerEvent: " + JSON.stringify(registerEvent));
-      addDebug("info type: " + typeof info);
-      addDebug("actionInfo type: " + typeof actionInfo);
-      
-      if (typeof actionInfo === "string") {
+
+      let actionInfoObj = actionInfo;
+      if (typeof actionInfoObj === "string") {
         try {
-          actionInfo = JSON.parse(actionInfo);
-          addDebug("actionInfo parsed from string");
-        } catch (e) {
-          addDebug("ERROR parsing actionInfo: " + e.message);
+          actionInfoObj = JSON.parse(actionInfoObj);
+        } catch {
+          actionInfoObj = {};
         }
       }
-      
-      addDebug("actionInfo: " + JSON.stringify(actionInfo, null, 2));
-      
-      if (actionInfo) {
-        if (actionInfo.action && actionInfo.action.UUID) {
-          currentActionUUID = actionInfo.action.UUID;
-          currentController = actionInfo.controller || "Encoder";
-          addDebug("Set currentActionUUID: " + currentActionUUID);
-          addDebug("Set currentController: " + currentController);
-          
-          const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
-          colorSectionTitle.textContent = `${actionName} Colors`;
-          addDebug("Updated title to: " + actionName + " Colors");
-        } else {
-          addDebug("actionInfo.action.UUID not found");
-          addDebug("actionInfo.action: " + JSON.stringify(actionInfo.action));
-          addDebug("actionInfo.controller: " + JSON.stringify(actionInfo.controller));
-        }
+
+      addDebug("Parsed actionInfo: " + JSON.stringify(actionInfoObj, null, 2));
+
+      currentActionUUID = actionInfoObj?.action || null;
+      currentController = actionInfoObj?.payload?.controller || actionInfoObj?.controller || "Encoder";
+
+      addDebug("currentActionUUID = " + currentActionUUID);
+      addDebug("currentController = " + currentController);
+
+      if (currentActionUUID) {
+        const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
+        colorSectionTitle.textContent = `${actionName} Colors`;
+        addDebug("Updated title to: " + actionName + " Colors");
       } else {
-        addDebug("WARNING: actionInfo is null/undefined");
+        addDebug("Could not detect action UUID");
       }
 
       socket = new WebSocket("ws://127.0.0.1:" + port);
@@ -228,24 +253,34 @@
         addDebug("WebSocket connected");
         send({ event: registerEvent, uuid: pluginUUID });
         send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getTargetDate" } });
-        send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getFontSettings", controller: currentController, action: currentActionUUID } });
+        send({
+          event: "sendToPlugin",
+          context: pluginUUID,
+          payload: {
+            command: "getFontSettings",
+            controller: currentController,
+            action: currentActionUUID
+          }
+        });
         send({ event: "sendToPlugin", context: pluginUUID, payload: { command: "getColorSettings" } });
         status.textContent = "Loading saved settings…";
       };
 
       socket.onmessage = function (event) {
         let message;
-        try { message = JSON.parse(event.data); } catch { return; }
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          return;
+        }
 
         if (message.event === "sendToPropertyInspector") {
           const payload = message.payload || {};
-          addDebug("Received payload: " + JSON.stringify(Object.keys(payload)));
 
           if (payload.dialColors && currentController === "Encoder") {
             backgroundColor.value = payload.dialColors.backgroundColor || "#111827";
             numberColor.value = payload.dialColors.numberColor || "#FFFFFF";
             labelColor.value = payload.dialColors.labelColor || "#D8D8DC";
-            addDebug("Loaded dial colors");
           }
 
           if (payload.keypadColors && currentController === "Keypad") {
@@ -254,36 +289,28 @@
               backgroundColor.value = selected.backgroundColor || "#111827";
               numberColor.value = selected.numberColor || "#FFFFFF";
               labelColor.value = selected.labelColor || "#D8D8DC";
-              addDebug("Loaded keypad colors for: " + currentActionUUID);
-            } else {
-              addDebug("No keypad colors found for: " + currentActionUUID);
-              addDebug("Available keys: " + JSON.stringify(Object.keys(payload.keypadColors)));
             }
           }
 
           if (payload.labelSize !== undefined) {
             labelSize.value = payload.labelSize;
             labelSizeValue.textContent = payload.labelSize;
-            addDebug("Loaded labelSize: " + payload.labelSize);
           }
 
           if (payload.numberSize !== undefined) {
             numberSize.value = payload.numberSize;
             numberSizeValue.textContent = payload.numberSize;
-            addDebug("Loaded numberSize: " + payload.numberSize);
           }
 
           if (payload.targetDate) {
             showTarget(payload.targetDate);
             status.textContent = "Settings loaded.";
-            addDebug("Loaded targetDate");
           }
         }
       };
 
       socket.onerror = function () {
         status.textContent = "Could not connect. Close and reopen Stream Deck settings.";
-        addDebug("WebSocket error");
       };
     };
 
@@ -352,4 +379,5 @@
     });
   </script>
 </body>
+
 </html>
