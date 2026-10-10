@@ -1,4 +1,3 @@
-
 const net = require("net");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -6,9 +5,7 @@ const path = require("path");
 
 const DEFAULT_TARGET_MS = Date.parse("2026-11-04T15:00:00-08:00");
 const TARGET_FILE = path.join(__dirname, "target-date.json");
-
 const FONT_FILE = path.join(__dirname, "font-settings.json");
-
 const COLOR_FILE = path.join(__dirname, "color-settings.json");
 
 const DEFAULT_COLORS = {
@@ -17,8 +14,15 @@ const DEFAULT_COLORS = {
   labelColor: "#D8D8DC"
 };
 
+const DEFAULT_FONT = {
+  labelSize: 18,
+  numberSize: 40
+};
+
 let DIAL_COLORS = { ...DEFAULT_COLORS };
 let KEYPAD_COLORS = {};
+let DIAL_FONT = { ...DEFAULT_FONT };
+let KEYPAD_FONT = {};
 
 const BACKGROUND_FILE = path.join(__dirname, "keypad-background.json");
 const MAX_BACKGROUND_SIZE = 2 * 1024 * 1024;
@@ -26,12 +30,6 @@ const MAX_BACKGROUND_SIZE = 2 * 1024 * 1024;
 let KEYPAD_BACKGROUND = null;
 
 loadKeypadBackground();
-
-const DEFAULT_LABEL_SIZE = 18;
-const DEFAULT_NUMBER_SIZE = 40;
-
-let LABEL_FONT_SIZE = DEFAULT_LABEL_SIZE;
-let NUMBER_FONT_SIZE = DEFAULT_NUMBER_SIZE;
 
 let TARGET_MS = loadTargetDate();
 let pluginId = null;
@@ -61,29 +59,47 @@ function loadKeypadBackground() {
   KEYPAD_BACKGROUND = null;
 }
 
-function loadFontSize() {
+function loadFontSettings() {
   try {
     const data = JSON.parse(fs.readFileSync(FONT_FILE, "utf8"));
-    const labelSize = Number(data.labelSize);
-    const numberSize = Number(data.numberSize);
 
-    if (
-      Number.isFinite(labelSize) &&
-      labelSize >= 12 && labelSize <= 28 &&
-      Number.isFinite(numberSize) &&
-      numberSize >= 12 && numberSize <= 54
-    ) {
-      LABEL_FONT_SIZE = labelSize;
-      NUMBER_FONT_SIZE = numberSize;
-      return;
+    if (data.dials && typeof data.dials === "object") {
+      const labelSize = Number(data.dials.labelSize);
+      const numberSize = Number(data.dials.numberSize);
+      if (
+        Number.isFinite(labelSize) &&
+        labelSize >= 12 && labelSize <= 60 &&
+        Number.isFinite(numberSize) &&
+        numberSize >= 12 && numberSize <= 60
+      ) {
+        DIAL_FONT = { labelSize, numberSize };
+      }
     }
-  } catch { }
 
-  LABEL_FONT_SIZE = DEFAULT_LABEL_SIZE;
-  NUMBER_FONT_SIZE = DEFAULT_NUMBER_SIZE;
+    if (data.keypad && typeof data.keypad === "object") {
+      const loadedKeypadFont = {};
+      for (const [action, values] of Object.entries(data.keypad)) {
+        if (!values || typeof values !== "object") continue;
+        const labelSize = Number(values.labelSize);
+        const numberSize = Number(values.numberSize);
+        if (
+          Number.isFinite(labelSize) &&
+          labelSize >= 12 && labelSize <= 60 &&
+          Number.isFinite(numberSize) &&
+          numberSize >= 12 && numberSize <= 60
+        ) {
+          loadedKeypadFont[action] = { labelSize, numberSize };
+        }
+      }
+      KEYPAD_FONT = loadedKeypadFont;
+    }
+  } catch {
+    DIAL_FONT = { ...DEFAULT_FONT };
+    KEYPAD_FONT = {};
+  }
 }
 
-loadFontSize();
+loadFontSettings();
 
 function loadColorSettings() {
   try {
@@ -103,7 +119,6 @@ function loadColorSettings() {
 }
 
 loadColorSettings();
-
 
 function loadTargetDate() {
   try {
@@ -307,7 +322,6 @@ function handleMessage(raw) {
 
     updateAll();
 
-    // If the settings page requested the saved date, reply to it.
     if (pendingInspectorContext) {
       send({
         event: "sendToPropertyInspector",
@@ -328,7 +342,6 @@ function handleMessage(raw) {
       require("path").join(__dirname, "settings-debug.txt"),
       "PLUGIN MESSAGE: " + JSON.stringify(msg) + "\r\n"
     );
-
 
     if (payload.command === "getBackgroundSettings") {
       send({
@@ -402,7 +415,6 @@ function handleMessage(raw) {
         payload: { backgroundReset: true }
       });
 
-
     } else if (payload.command === "getColorSettings") {
       send({
         event: "sendToPropertyInspector",
@@ -457,17 +469,27 @@ function handleMessage(raw) {
       }
 
     } else if (payload.command === "getFontSettings") {
+      const targetController = payload.controller || "Encoder";
+      const targetAction = payload.action || null;
+      const font =
+        targetController === "Keypad" && targetAction && PARTS[targetAction]
+          ? (KEYPAD_FONT[targetAction] || DIAL_FONT)
+          : DIAL_FONT;
+
       send({
         event: "sendToPropertyInspector",
         context: msg.context,
         payload: {
-          labelSize: LABEL_FONT_SIZE,
-          numberSize: NUMBER_FONT_SIZE
+          labelSize: font.labelSize,
+          numberSize: font.numberSize
         }
       });
+
     } else if (payload.command === "saveFontSettings") {
       const labelSize = Number(payload.labelSize);
       const numberSize = Number(payload.numberSize);
+      const controller = payload.controller || "Encoder";
+      const action = payload.action || null;
 
       if (
         Number.isFinite(labelSize) &&
@@ -475,12 +497,15 @@ function handleMessage(raw) {
         Number.isFinite(numberSize) &&
         numberSize >= 12 && numberSize <= 60
       ) {
-        LABEL_FONT_SIZE = labelSize;
-        NUMBER_FONT_SIZE = numberSize;
+        if (controller === "Keypad" && action && PARTS[action]) {
+          KEYPAD_FONT[action] = { labelSize, numberSize };
+        } else {
+          DIAL_FONT = { labelSize, numberSize };
+        }
 
         fs.writeFileSync(
           FONT_FILE,
-          JSON.stringify({ labelSize, numberSize }, null, 2),
+          JSON.stringify({ dials: DIAL_FONT, keypad: KEYPAD_FONT }, null, 2),
           "utf8"
         );
 
@@ -490,8 +515,8 @@ function handleMessage(raw) {
           event: "sendToPropertyInspector",
           context: msg.context,
           payload: {
-            labelSize: LABEL_FONT_SIZE,
-            numberSize: NUMBER_FONT_SIZE,
+            labelSize,
+            numberSize,
             fontSaved: true
           }
         });
@@ -499,8 +524,6 @@ function handleMessage(raw) {
 
     } else if (payload.command === "getTargetDate") {
       pendingInspectorContext = msg.context;
-
-      // Load the saved date directly from the local file.
       TARGET_MS = loadTargetDate();
 
       send({
@@ -578,8 +601,6 @@ function values() {
   };
 }
 
-
-
 function updateContext(context) {
   const entry = contexts.get(context);
   if (!entry) return;
@@ -590,6 +611,10 @@ function updateContext(context) {
   const colors = entry.controller === "Keypad"
     ? (KEYPAD_COLORS[entry.uuid] || DEFAULT_COLORS)
     : DIAL_COLORS;
+
+  const font = entry.controller === "Keypad"
+    ? (KEYPAD_FONT[entry.uuid] || DIAL_FONT)
+    : DIAL_FONT;
 
   const v = values();
   let display;
@@ -608,32 +633,22 @@ function updateContext(context) {
       display = String(v.seconds).padStart(2, "0");
   }
 
-  // Regular Stream Deck buttons
   if (entry.controller === "Keypad") {
-    const labelSize = Math.min(LABEL_FONT_SIZE, 28);
-    const numberSize = Math.min(NUMBER_FONT_SIZE, 54);
+    const labelFontSize = Math.min(font.labelSize, 28);
+    const numberFontSize = Math.min(font.numberSize, 54);
 
-    const background =
-      `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
+    const background = KEYPAD_BACKGROUND
+      ? `
+        <image href="data:${KEYPAD_BACKGROUND.mime};base64,${KEYPAD_BACKGROUND.base64}" x="0" y="0" width="144" height="144" preserveAspectRatio="xMidYMid slice"/>
+        <rect width="144" height="144" fill="#000000" opacity="0.25"/>
+      `
+      : `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
 
     const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="144" height="144" viewBox="0 0 144 144">
+      <svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
         ${background}
-        <text x="72" y="43"
-              text-anchor="middle"
-              font-family="Arial, sans-serif"
-              font-size="${labelSize}"
-              font-weight="600"
-              fill="${colors.labelColor}">${part.label}</text>
-        <text x="72" y="105"
-              text-anchor="middle"
-              textLength="120"
-              lengthAdjust="spacingAndGlyphs"
-              font-family="Arial, sans-serif"
-              font-size="${numberSize}"
-              font-weight="700"
-              fill="${colors.numberColor}">${display}</text>
+        <text x="72" y="43" text-anchor="middle" font-family="Arial, sans-serif" font-size="${labelFontSize}" font-weight="600" fill="${colors.labelColor}">${part.label}</text>
+        <text x="72" y="105" text-anchor="middle" textLength="120" lengthAdjust="spacingAndGlyphs" font-family="Arial, sans-serif" font-size="${numberFontSize}" font-weight="700" fill="${colors.numberColor}">${display}</text>
       </svg>
     `;
 
@@ -641,8 +656,7 @@ function updateContext(context) {
       event: "setImage",
       context,
       payload: {
-        image: "data:image/svg+xml;charset=utf8," +
-          encodeURIComponent(svg),
+        image: "data:image/svg+xml;charset=utf8," + encodeURIComponent(svg),
         target: 0,
         state: 0
       }
@@ -651,7 +665,6 @@ function updateContext(context) {
     return;
   }
 
-  // Existing Stream Deck+ encoder display — leave this behavior intact.
   send({
     event: "setFeedbackLayout",
     context,
@@ -664,17 +677,15 @@ function updateContext(context) {
     payload: {
       label: {
         value: part.label,
-        font: { size: LABEL_FONT_SIZE }
+        font: { size: font.labelSize }
       },
       value: {
         value: display,
-        font: { size: NUMBER_FONT_SIZE }
+        font: { size: font.numberSize }
       }
     }
   });
 }
-
-
 
 function updateAll() {
   for (const context of contexts.keys()) updateContext(context);
