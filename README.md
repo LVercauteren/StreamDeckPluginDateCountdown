@@ -86,5 +86,4 @@ Settings:
 <img src="./imgs/example4.png" alt="Demo">
 
 
-[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60">](https://www.buymeacoffee.com/LVercauteren)
-<a href="https://www.buymeacoffee.com/LVercauteren" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/LVercauteren"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a beer&emoji=🍺&slug=LVercauteren&button_colour=888686&font_colour=ffffff&font_family=Cookie&outline_colour=ffffff&coffee_colour=FFDD00" /></a>
