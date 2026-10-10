@@ -1,0 +1,53 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "wow-forever-countdown",
+	"controller": "Encoder",
+	"items": [
+		{
+			"key": "valueBackground",
+			"type": "pixmap",
+			"rect": [
+				0,
+				0,
+				200,
+				100
+			],
+			"value": "imgs/rect",
+			"zOrder": 0
+		},
+		{
+			"key": "label",
+			"type": "text",
+			"rect": [
+				0,
+				8,
+				200,
+				28
+			],
+			"font": {
+				"size": 18,
+				"weight": 600
+			},
+			"alignment": "center",
+			"value": "DAYS",
+			"zOrder": 1
+		},
+		{
+			"key": "value",
+			"type": "text",
+			"rect": [
+				0,
+				38,
+				200,
+				54
+			],
+			"font": {
+				"size": 40,
+				"weight": 700
+			},
+			"alignment": "center",
+			"value": "0",
+			"zOrder": 1
+		}
+	]
+}

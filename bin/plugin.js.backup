@@ -1,0 +1,236 @@
+
+const net = require("net");
+const crypto = require("crypto");
+
+const TARGET_MS = Date.parse("2026-11-04T15:00:00-08:00");
+
+const PARTS = {
+  "com.wowforever.countdown.days":    { label: "DAYS",    kind: "days" },
+  "com.wowforever.countdown.hours":   { label: "HOURS",   kind: "hours" },
+  "com.wowforever.countdown.minutes": { label: "MINUTES", kind: "minutes" },
+  "com.wowforever.countdown.seconds": { label: "SECONDS", kind: "seconds" }
+};
+
+class SimpleWebSocket {
+  constructor(url, onOpen, onMessage, onClose) {
+    const m = /^ws:\/\/([^/:]+):(\d+)(\/.*)?$/.exec(url);
+    if (!m) throw new Error("Only ws://host:port URLs are supported");
+    this.host = m[1];
+    this.port = Number(m[2]);
+    this.path = m[3] || "/";
+    this.onOpen = onOpen;
+    this.onMessage = onMessage;
+    this.onClose = onClose;
+    this.socket = null;
+    this.buffer = Buffer.alloc(0);
+    this.handshaken = false;
+    this.closed = false;
+  }
+
+  connect() {
+    this.socket = net.createConnection({host: this.host, port: this.port});
+    const key = crypto.randomBytes(16).toString("base64");
+
+    this.socket.on("connect", () => {
+      this.socket.write(
+        `GET ${this.path} HTTP/1.1\r\n` +
+        `Host: ${this.host}:${this.port}\r\n` +
+        `Upgrade: websocket\r\n` +
+        `Connection: Upgrade\r\n` +
+        `Sec-WebSocket-Key: ${key}\r\n` +
+        `Sec-WebSocket-Version: 13\r\n\r\n`
+      );
+    });
+
+    this.socket.on("data", chunk => {
+      this.buffer = Buffer.concat([this.buffer, chunk]);
+      if (!this.handshaken) {
+        const end = this.buffer.indexOf("\r\n\r\n");
+        if (end < 0) return;
+        const header = this.buffer.subarray(0, end).toString("utf8");
+        if (!/^HTTP\/1\.[01] 101 /.test(header)) {
+          this.close();
+          return;
+        }
+        this.handshaken = true;
+        this.buffer = this.buffer.subarray(end + 4);
+        this.onOpen();
+      }
+      this.parseFrames();
+    });
+
+    this.socket.on("error", () => this.close());
+    this.socket.on("close", () => this.close());
+  }
+
+  parseFrames() {
+    while (this.buffer.length >= 2) {
+      const b0 = this.buffer[0], b1 = this.buffer[1];
+      const fin = (b0 & 0x80) !== 0;
+      const opcode = b0 & 0x0f;
+      let len = b1 & 0x7f;
+      let pos = 2;
+
+      if (len === 126) {
+        if (this.buffer.length < 4) return;
+        len = this.buffer.readUInt16BE(2); pos = 4;
+      } else if (len === 127) {
+        if (this.buffer.length < 10) return;
+        const high = this.buffer.readUInt32BE(2);
+        const low = this.buffer.readUInt32BE(6);
+        if (high !== 0) throw new Error("Frame too large");
+        len = low; pos = 10;
+      }
+
+      const masked = (b1 & 0x80) !== 0;
+      let mask;
+      if (masked) {
+        if (this.buffer.length < pos + 4) return;
+        mask = this.buffer.subarray(pos, pos + 4); pos += 4;
+      }
+      if (this.buffer.length < pos + len) return;
+
+      let payload = Buffer.from(this.buffer.subarray(pos, pos + len));
+      this.buffer = this.buffer.subarray(pos + len);
+
+      if (masked) {
+        for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i & 3];
+      }
+
+      if (opcode === 0x8) { this.close(); return; }
+      if (opcode === 0x9) { this.sendFrame(0xA, payload); continue; }
+      if (opcode === 0x1 && fin) {
+        this.onMessage(payload.toString("utf8"));
+      }
+    }
+  }
+
+  sendFrame(opcode, payload) {
+    if (!this.socket || this.socket.destroyed) return;
+    payload = Buffer.from(payload);
+    const mask = crypto.randomBytes(4);
+    let header;
+    if (payload.length < 126) {
+      header = Buffer.alloc(2);
+      header[1] = 0x80 | payload.length;
+    } else if (payload.length < 65536) {
+      header = Buffer.alloc(4);
+      header[1] = 0x80 | 126;
+      header.writeUInt16BE(payload.length, 2);
+    } else {
+      header = Buffer.alloc(10);
+      header[1] = 0x80 | 127;
+      header.writeUInt32BE(0, 2);
+      header.writeUInt32BE(payload.length, 6);
+    }
+    header[0] = 0x80 | opcode;
+    const masked = Buffer.alloc(payload.length);
+    for (let i = 0; i < payload.length; i++) masked[i] = payload[i] ^ mask[i & 3];
+    this.socket.write(Buffer.concat([header, mask, masked]));
+  }
+
+  sendText(text) { this.sendFrame(0x1, Buffer.from(text, "utf8")); }
+
+  close() {
+    if (this.closed) return;
+    this.closed = true;
+    try {
+      if (this.socket && !this.socket.destroyed) this.socket.end();
+    } catch {}
+    if (this.onClose) this.onClose();
+  }
+}
+
+let ws = null;
+let contexts = new Map();
+let timer = null;
+
+function send(obj) {
+  if (ws) ws.sendText(JSON.stringify(obj));
+}
+
+function startConnection() {
+  const args = process.argv.slice(2);
+  const port = args[args.indexOf("-port") + 1];
+  const pluginUUID = args[args.indexOf("-pluginUUID") + 1];
+  const registerEvent = args[args.indexOf("-registerEvent") + 1];
+
+  if (!port || !pluginUUID || !registerEvent) {
+    process.stderr.write("WoW Forever Countdown: missing Stream Deck startup arguments\n");
+    process.exit(2);
+  }
+
+  ws = new SimpleWebSocket(
+    `ws://127.0.0.1:${port}`,
+    () => send({event: registerEvent, uuid: pluginUUID}),
+    handleMessage,
+    () => {
+      ws = null;
+      if (timer) { clearInterval(timer); timer = null; }
+      setTimeout(startConnection, 1000);
+    }
+  );
+  ws.connect();
+}
+
+function handleMessage(raw) {
+  let msg;
+  try { msg = JSON.parse(raw); } catch { return; }
+
+  if (msg.event === "willAppear") {
+    if (!PARTS[msg.action]) return;
+    contexts.set(msg.context, {uuid: msg.action});
+    updateContext(msg.context);
+    if (!timer) timer = setInterval(updateAll, 250);
+  } else if (msg.event === "willDisappear") {
+    contexts.delete(msg.context);
+    if (contexts.size === 0 && timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  }
+}
+
+function values() {
+  const remaining = Math.max(0, TARGET_MS - Date.now());
+  const total = Math.floor(remaining / 1000);
+  return {
+    days: Math.floor(total / 86400),
+    hours: Math.floor((total % 86400) / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60
+  };
+}
+
+function updateContext(context) {
+  const entry = contexts.get(context);
+  if (!entry) return;
+
+  const part = PARTS[entry.uuid];
+  const v = values();
+  let display;
+
+  switch (part.kind) {
+    case "days": display = String(v.days); break;
+    case "hours": display = String(v.hours).padStart(2, "0"); break;
+    case "minutes": display = String(v.minutes).padStart(2, "0"); break;
+    default: display = String(v.seconds).padStart(2, "0");
+  }
+
+  send({
+    event: "setFeedbackLayout",
+    context,
+    payload: {layout: "countdown.json"}
+  });
+  send({
+    event: "setFeedback",
+    context,
+    payload: {label: part.label, value: display}
+  });
+}
+
+function updateAll() {
+  for (const context of contexts.keys()) updateContext(context);
+}
+
+startConnection();

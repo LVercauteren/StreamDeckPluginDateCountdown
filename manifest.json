@@ -1,0 +1,96 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Name": "Days",
+      "UUID": "com.wowforever.countdown.days",
+      "Icon": "imgs/action",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "countdown.json"
+      },
+      "States": [
+        {
+          "Image": "imgs/action"
+        }
+      ]
+    },
+    {
+      "Name": "Hours",
+      "UUID": "com.wowforever.countdown.hours",
+      "Icon": "imgs/action",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "countdown.json"
+      },
+      "States": [
+        {
+          "Image": "imgs/action"
+        }
+      ]
+    },
+    {
+      "Name": "Minutes",
+      "UUID": "com.wowforever.countdown.minutes",
+      "Icon": "imgs/action",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "countdown.json"
+      },
+      "States": [
+        {
+          "Image": "imgs/action"
+        }
+      ]
+    },
+    {
+      "Name": "Seconds",
+      "UUID": "com.wowforever.countdown.seconds",
+      "Icon": "imgs/action",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "countdown.json"
+      },
+      "States": [
+        {
+          "Image": "imgs/action"
+        }
+      ]
+    }
+  ],
+  "Author": "WoW Forever Countdown",
+  "Category": "WoW Forever",
+  "CategoryIcon": "imgs/action",
+  "CodePath": "bin/plugin.js",
+  "PropertyInspectorPath": "ui/settings.html",
+  "Description": "Live countdown to November 4, 2026 at 3:00 PM Pacific Standard Time.",
+  "Icon": "imgs/action",
+  "Name": "WoW Forever Countdown",
+  "Nodejs": {
+    "Version": "20"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.wowforever.countdown",
+  "Version": "1.0.0.0",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.6"
+  }
+}

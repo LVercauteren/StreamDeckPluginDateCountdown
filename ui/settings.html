@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WoW Forever Countdown Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 10px 12px 10px 70px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 12px;
+      color: #d8d8dc;
+      /*background: #232427;*/
+    }
+
+    .settings-content {
+      width: 100%;
+      margin: 0;
+    }
+
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px 0;
+    }
+
+    .color-row label {
+      margin: 0;
+      flex: 1;
+    }
+
+    .color-row input[type="color"] {
+      width: 42px;
+      min-width: 42px;
+      height: 28px;
+      min-height: 28px;
+      padding: 2px;
+      cursor: pointer;
+    }
+
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e8e8eb;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: #a4a5ab;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    label {
+      display: block;
+      margin: 0 0 5px;
+      color: #bfc0c6;
+      font-size: 11px;
+    }
+
+    input,
+    button {
+      width: 100%;
+      min-height: 29px;
+      padding: 5px 8px;
+      border-radius: 2px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    input {
+      color: #eeeeef;
+      background: #38393e;
+      border: 1px solid #45464c;
+      color-scheme: dark;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #1684e8;
+    }
+
+    button {
+      margin-top: 10px;
+      color: #eeeeef;
+      background: #3a3b40;
+      border: 1px solid #505158;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #46474d;
+    }
+
+    button:active {
+      background: #303136;
+    }
+
+    #status {
+      margin-top: 9px;
+      color: #92949b;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+
+
+<body>
+  <div class="settings-content"></div>
+  <h3>Date Countdown</h3>
+  <p>Choose the shared target date and time for all four countdown actions.</p>
+
+  <label for="targetDate">Target date and time</label>
+  <input id="targetDate" type="datetime-local" step="60" placeholder="Loading saved date…">
+
+  <button id="saveButton" type="button">Save target date</button>
+
+  <hr>
+  <h3>Countdown Font Size</h3>
+
+  <label for="labelSize">Label size: <span id="labelSizeValue">18</span> px</label>
+  <input id="labelSize" type="range" min="12" max="28" value="18">
+
+  <label for="numberSize" style="margin-top: 12px;">Number size: <span id="numberSizeValue">40</span> px</label>
+  <input id="numberSize" type="range" min="12" max="54" value="40">
+
+  <button id="saveFontButton" type="button">Save font sizes</button>
+
+
+  <hr>
+  <h3>Countdown Colors</h3>
+
+  <div class="color-row">
+    <label for="backgroundColor">Background color</label>
+    <input id="backgroundColor" type="color" value="#111827">
+  </div>
+
+  <div class="color-row">
+    <label for="numberColor">Number color</label>
+    <input id="numberColor" type="color" value="#FFFFFF">
+  </div>
+
+  <div class="color-row">
+    <label for="labelColor">Label color</label>
+    <input id="labelColor" type="color" value="#D8D8DC">
+  </div>
+
+  <button id="saveColorsButton" type="button">Save colors</button>
+
+
+  <!--
+  <hr>
+  <h3>Keypad Background</h3>
+  <p>Upload a custom image to use behind the countdown on regular Stream Deck keys. PNG, JPG, and WebP images are
+    supported.</p>
+
+  <label for="backgroundImage">Choose background image</label>
+  <input id="backgroundImage" type="file" accept="image/png,image/jpeg,image/webp">
+
+  <div id="backgroundPreviewContainer" style="display: none; margin-top: 10px;">
+    <label>Preview</label>
+    <img id="backgroundPreview" alt="Keypad background preview"
+      style="width: 144px; height: 144px; object-fit: cover; border-radius: 6px; display: block;">
+  </div>
+
+  <button id="saveBackgroundButton" type="button">Save keypad background</button>
+  <button id="resetBackgroundButton" type="button">Reset to default background</button>
+  -->
+
+  <div id="status">Connecting to Stream Deck…</div>
+  </div>
+  <script>
+    let socket;
+    let pluginUUID;
+    let savedTargetDate = null;
+
+    const input = document.getElementById("targetDate");
+    const status = document.getElementById("status");
+    const saveButton = document.getElementById("saveButton");
+
+    const DEFAULT_TARGET = "2026-11-04T15:00:00-08:00";
+
+    const labelSize = document.getElementById("labelSize");
+    const numberSize = document.getElementById("numberSize");
+    const labelSizeValue = document.getElementById("labelSizeValue");
+    const numberSizeValue = document.getElementById("numberSizeValue");
+    const saveFontButton = document.getElementById("saveFontButton");
+    const backgroundColor = document.getElementById("backgroundColor");
+    const numberColor = document.getElementById("numberColor");
+    const labelColor = document.getElementById("labelColor");
+    const saveColorsButton = document.getElementById("saveColorsButton");
+
+    const backgroundImage = document.getElementById("backgroundImage");
+    const backgroundPreview = document.getElementById("backgroundPreview");
+    const backgroundPreviewContainer = document.getElementById("backgroundPreviewContainer");
+    const saveBackgroundButton = document.getElementById("saveBackgroundButton");
+    const resetBackgroundButton = document.getElementById("resetBackgroundButton");
+
+    let selectedBackgroundDataUrl = null;
+
+    function toLocalInputValue(date) {
+      const pad = n => String(n).padStart(2, "0");
+      return date.getFullYear() + "-" +
+        pad(date.getMonth() + 1) + "-" +
+        pad(date.getDate()) + "T" +
+        pad(date.getHours()) + ":" +
+        pad(date.getMinutes());
+    }
+
+    function showTarget(isoDate) {
+      const date = new Date(isoDate);
+      if (!Number.isNaN(date.getTime())) {
+        input.value = toLocalInputValue(date);
+        savedTargetDate = date.toISOString();
+      }
+    }
+
+    function send(message) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(message));
+      }
+    }
+
+    window.connectElgatoStreamDeckSocket =
+      function (port, uuid, registerEvent, info, actionInfo) {
+        pluginUUID = uuid;
+        console.log("Countdown actionInfo:", actionInfo);
+        socket = new WebSocket("ws://127.0.0.1:" + port);
+
+        socket.onopen = function () {
+          send({ event: registerEvent, uuid: pluginUUID });
+          send({
+            event: "sendToPlugin",
+            context: pluginUUID,
+            payload: { command: "getTargetDate" }
+          });
+          send({
+            event: "sendToPlugin",
+            context: pluginUUID,
+            payload: { command: "getFontSettings" }
+          });
+          send({
+            event: "sendToPlugin",
+            context: pluginUUID,
+            payload: { command: "getColorSettings" }
+          });
+          status.textContent = "Loading saved target date…";
+        };
+
+        socket.onmessage = function (event) {
+          let message;
+
+          try {
+            message = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          if (message.event === "sendToPropertyInspector") {
+            const payload = message.payload || {};
+
+
+            if (payload.backgroundDataUrl !== undefined) {
+              if (payload.backgroundDataUrl) {
+                backgroundPreview.src = payload.backgroundDataUrl;
+                backgroundPreviewContainer.style.display = "block";
+              } else {
+                backgroundPreview.removeAttribute("src");
+                backgroundPreviewContainer.style.display = "none";
+              }
+            }
+
+            if (payload.backgroundSaved) {
+              selectedBackgroundDataUrl = null;
+              backgroundImage.value = "";
+              status.textContent = "Keypad background saved.";
+            }
+
+            if (payload.backgroundReset) {
+              selectedBackgroundDataUrl = null;
+              backgroundImage.value = "";
+              backgroundPreview.removeAttribute("src");
+              backgroundPreviewContainer.style.display = "none";
+              status.textContent = "Keypad background reset.";
+            }
+
+            if (payload.backgroundError) {
+              status.textContent = payload.backgroundError;
+            }
+
+            if (payload.dialColors) {
+              backgroundColor.value = payload.dialColors.backgroundColor || "#111827";
+              numberColor.value = payload.dialColors.numberColor || "#FFFFFF";
+              labelColor.value = payload.dialColors.labelColor || "#D8D8DC";
+            }
+
+            if (payload.colorsSaved) {
+              status.textContent = "Colors saved.";
+            }
+
+            if (payload.colorsError) {
+              status.textContent = payload.colorsError;
+            }
+
+            if (payload.labelSize !== undefined) {
+              labelSize.value = payload.labelSize;
+              labelSizeValue.textContent = payload.labelSize;
+            }
+
+            if (payload.numberSize !== undefined) {
+              numberSize.value = payload.numberSize;
+              numberSizeValue.textContent = payload.numberSize;
+            }
+
+            if (payload.fontSaved) {
+              status.textContent = "Font sizes saved.";
+            }
+            const targetDate = message.payload?.targetDate;
+
+            if (targetDate) {
+              requestAnimationFrame(() => {
+                showTarget(targetDate);
+                status.textContent = "Saved target date loaded.";
+              });
+            }
+            return;
+          }
+        };
+
+        socket.onerror = function () {
+          status.textContent =
+            "Could not connect. Close and reopen Stream Deck settings.";
+        };
+      };
+
+    labelSize.addEventListener("input", () => {
+      labelSizeValue.textContent = labelSize.value;
+    });
+
+    numberSize.addEventListener("input", () => {
+      numberSizeValue.textContent = numberSize.value;
+    });
+
+    saveFontButton.addEventListener("click", () => {
+      send({
+        event: "sendToPlugin",
+        context: pluginUUID,
+        payload: {
+          command: "saveFontSettings",
+          labelSize: Number(labelSize.value),
+          numberSize: Number(numberSize.value)
+        }
+      });
+
+      status.textContent = "Font sizes saved.";
+    });
+
+    saveColorsButton.addEventListener("click", () => {
+      send({
+        event: "sendToPlugin",
+        context: pluginUUID,
+        payload: {
+          command: "saveColorSettings",
+          colors: {
+            backgroundColor: backgroundColor.value,
+            numberColor: numberColor.value,
+            labelColor: labelColor.value
+          }
+        }
+      });
+
+      status.textContent = "Saving colors…";
+    });
+
+
+    backgroundImage.addEventListener("change", () => {
+      const file = backgroundImage.files[0];
+      if (!file) return;
+
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+        status.textContent = "Please choose a PNG, JPG, or WebP image.";
+        backgroundImage.value = "";
+        return;
+      }
+
+      if (file.size > 2 * 1024 * 1024) {
+        status.textContent = "The image must be smaller than 2 MB.";
+        backgroundImage.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        selectedBackgroundDataUrl = reader.result;
+        backgroundPreview.src = reader.result;
+        backgroundPreviewContainer.style.display = "block";
+        status.textContent = "Preview ready. Click Save keypad background.";
+      };
+
+      reader.onerror = () => {
+        status.textContent = "TEST: updated settings file is running.";
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    saveBackgroundButton.addEventListener("click", () => {
+      if (!selectedBackgroundDataUrl) {
+        status.textContent = "Choose a new image first.";
+        return;
+      }
+
+      send({
+        event: "sendToPlugin",
+        context: pluginUUID,
+        payload: {
+          command: "saveBackground",
+          backgroundDataUrl: selectedBackgroundDataUrl
+        }
+      });
+
+      status.textContent = "Saving keypad background…";
+    });
+
+    resetBackgroundButton.addEventListener("click", () => {
+      send({
+        event: "sendToPlugin",
+        context: pluginUUID,
+        payload: { command: "resetBackground" }
+      });
+
+      status.textContent = "Resetting keypad background…";
+    });
+
+    saveButton.addEventListener("click", function () {
+      if (!input.value) {
+        status.textContent = "Please choose a date and time first.";
+        return;
+      }
+
+      const chosenDate = new Date(input.value);
+      if (Number.isNaN(chosenDate.getTime())) {
+        status.textContent = "That date and time is not valid.";
+        return;
+      }
+
+      savedTargetDate = chosenDate.toISOString();
+
+      send({
+        event: "sendToPlugin",
+        context: pluginUUID,
+        payload: {
+          targetDate: savedTargetDate
+        }
+      });
+
+      status.textContent = "Target date saved.";
+    });
+
+  </script>
+</body>
+
+</html>
