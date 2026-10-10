@@ -305,6 +305,21 @@
       </div>
     </div>
 
+    <div id="displayOnly" class="hidden">
+      <hr>
+      <h3>Display</h3>
+      <div class="compact-section">
+        <label><input id="unitDays" type="checkbox" value="days" checked> Days</label>
+        <label><input id="unitHours" type="checkbox" value="hours" checked> Hours</label>
+        <label><input id="unitMinutes" type="checkbox" value="minutes" checked> Minutes</label>
+        <label><input id="unitSeconds" type="checkbox" value="seconds" checked> Seconds</label>
+      </div>
+    </div>
+
+    <hr>
+    <h3>Text when date is reached</h3>
+    <input id="reachedText" type="text" maxlength="20" placeholder="Happy New Year!">
+
     <hr>
     <h3>Countdown Font Size</h3>
     <div class="compact-section">
@@ -379,7 +394,22 @@
     const numberColor = $("numberColor");
     const labelColor = $("labelColor");
 
+    const CUSTOM_ACTION = "com.lvercauteren.datecountdown.custom";
+    const unitBoxes = ["unitDays", "unitHours", "unitMinutes", "unitSeconds"].map($);
+    const reachedText = $("reachedText");
+    let lastUnits = ["days", "hours", "minutes", "seconds"];
+
+    function isCustomAction() {
+      return currentActionUUID === CUSTOM_ACTION;
+    }
+
+    function setUnitBoxes(units) {
+      lastUnits = units;
+      unitBoxes.forEach(box => { box.checked = units.includes(box.value); });
+    }
+
     const ACTION_NAMES = {
+      [CUSTOM_ACTION]: "Countdown",
       "com.lvercauteren.datecountdown.days": "Days",
       "com.lvercauteren.datecountdown.hours": "Hours",
       "com.lvercauteren.datecountdown.minutes": "Minutes",
@@ -665,6 +695,7 @@
       currentController = actionInfoObj?.payload?.controller || actionInfoObj?.controller || "Encoder";
 
       applyControllerLayout();
+      $("displayOnly").classList.toggle("hidden", !isCustomAction());
 
       if (currentActionUUID) {
         const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
@@ -689,6 +720,8 @@
             action: currentActionUUID
           });
         }
+
+        sendCommand({ command: "getDisplaySettings", action: currentActionUUID });
 
         addStatus("Loading saved settings…");
       };
@@ -718,6 +751,14 @@
           addStatus(payload.slotError, "error");
         }
         if (payload.colorsError) addStatus(payload.colorsError, "error");
+
+        if (payload.displayError) addStatus(payload.displayError, "error");
+        if (payload.units !== undefined && isCustomAction()) setUnitBoxes(payload.units);
+        if (payload.reachedText !== undefined && document.activeElement !== reachedText) {
+          reachedText.value = payload.reachedText;
+        }
+        if (payload.displaySaved) addStatus("Display settings saved.", "success");
+        if (payload.displaySaved || payload.displayError || payload.reachedText !== undefined) return;
 
         if (payload.fontSaved || payload.colorsSaved) return;
 
@@ -781,6 +822,34 @@
     [backgroundColor, numberColor, labelColor].forEach(el => {
       el.addEventListener("input", applyColors);
     });
+
+    function saveDisplay() {
+      const message = {
+        command: "saveDisplaySettings",
+        action: currentActionUUID,
+        reachedText: reachedText.value.trim()
+      };
+      if (isCustomAction()) {
+        message.units = unitBoxes.filter(box => box.checked).map(box => box.value);
+      }
+      sendCommand(message);
+    }
+
+    unitBoxes.forEach(box => {
+      box.addEventListener("change", () => {
+        if (!unitBoxes.some(b => b.checked)) {
+          setUnitBoxes(lastUnits);
+          addStatus("Select at least one unit to display.", "error");
+          return;
+        }
+        lastUnits = unitBoxes.filter(b => b.checked).map(b => b.value);
+        saveDisplay();
+      });
+    });
+
+    const applyReachedText = debounce(saveDisplay, 400);
+    reachedText.addEventListener("input", applyReachedText);
+    reachedText.addEventListener("change", saveDisplay);
 
     // ---- Slot selection and auto-apply of name/date edits ----
     slotSelect.addEventListener("change", () => {

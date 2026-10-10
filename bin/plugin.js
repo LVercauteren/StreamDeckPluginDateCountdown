@@ -23,8 +23,51 @@ const PARTS = {
   "com.lvercauteren.datecountdown.days": { label: "DAYS", kind: "days" },
   "com.lvercauteren.datecountdown.hours": { label: "HOURS", kind: "hours" },
   "com.lvercauteren.datecountdown.minutes": { label: "MINUTES", kind: "minutes" },
-  "com.lvercauteren.datecountdown.seconds": { label: "SECONDS", kind: "seconds" }
+  "com.lvercauteren.datecountdown.seconds": { label: "SECONDS", kind: "seconds" },
+  "com.lvercauteren.datecountdown.custom": { label: "COUNTDOWN", kind: "custom" }
 };
+
+const UNIT_ORDER = ["days", "hours", "minutes", "seconds"];
+const UNIT_SECONDS = { days: 86400, hours: 3600, minutes: 60, seconds: 1 };
+const UNIT_LABELS = { days: "DAYS", hours: "HOURS", minutes: "MINUTES", seconds: "SECONDS" };
+const UNIT_SHORT_LABELS = { days: "DAYS", hours: "HRS", minutes: "MIN", seconds: "SEC" };
+const MAX_REACHED_TEXT = 20;
+
+// Legacy actions always show their single unit; the custom action defaults to all four.
+function defaultUnits(uuid) {
+  const part = PARTS[uuid];
+  return part && part.kind !== "custom" ? [part.kind] : UNIT_ORDER.slice();
+}
+
+function normalizeUnits(units, uuid) {
+  const part = PARTS[uuid];
+  if (part && part.kind !== "custom") return [part.kind];
+  if (!Array.isArray(units)) return defaultUnits(uuid);
+  const valid = UNIT_ORDER.filter(u => units.includes(u));
+  return valid.length > 0 ? valid : defaultUnits(uuid);
+}
+
+function normalizeReachedText(text) {
+  if (typeof text !== "string") return "";
+  return text.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, MAX_REACHED_TEXT).trim();
+}
+
+function escapeXml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+// Rough font size so `text` fits `maxWidth`; textLength is only needed below the minimum size.
+function fitText(text, baseSize, maxWidth, minSize = 10) {
+  const estimate = size => text.length * size * 0.62;
+  let size = baseSize;
+  if (estimate(size) > maxWidth) size = Math.max(minSize, Math.floor(maxWidth / (text.length * 0.62)));
+  return { size, squeeze: estimate(size) > maxWidth };
+}
 
 // ---------------------------------------------------------------------------
 // Countdown slots (global list, each button/dial picks one by index)
@@ -282,6 +325,21 @@ function persistSettings(context, settings) {
   });
 }
 
+function persistEntry(context) {
+  const entry = contexts.get(context);
+  if (!entry) return;
+  persistSettings(context, {
+    slotIndex: entry.slotIndex,
+    backgroundColor: entry.backgroundColor,
+    numberColor: entry.numberColor,
+    labelColor: entry.labelColor,
+    labelSize: entry.labelSize,
+    numberSize: entry.numberSize,
+    units: entry.units,
+    reachedText: entry.reachedText
+  });
+}
+
 function handleMessage(raw) {
   let msg;
   try {
@@ -326,14 +384,7 @@ function handleMessage(raw) {
           entry.labelColor = colors.labelColor;
 
           // Persist to Stream Deck settings
-          persistSettings(msg.context, {
-            slotIndex: entry.slotIndex,
-            backgroundColor: entry.backgroundColor,
-            numberColor: entry.numberColor,
-            labelColor: entry.labelColor,
-            labelSize: entry.labelSize,
-            numberSize: entry.numberSize
-          });
+          persistEntry(msg.context);
 
           updateContext(msg.context);
 
@@ -378,14 +429,7 @@ function handleMessage(raw) {
           entry.numberSize = numberSize;
 
           // Persist to Stream Deck settings
-          persistSettings(msg.context, {
-            slotIndex: entry.slotIndex,
-            backgroundColor: entry.backgroundColor,
-            numberColor: entry.numberColor,
-            labelColor: entry.labelColor,
-            labelSize: entry.labelSize,
-            numberSize: entry.numberSize
-          });
+          persistEntry(msg.context);
 
           updateContext(msg.context);
 
@@ -401,6 +445,62 @@ function handleMessage(raw) {
         }
       }
 
+    } else if (payload.command === "getDisplaySettings") {
+      const entry = contexts.get(msg.context);
+      send({
+        event: "sendToPropertyInspector",
+        context: msg.context,
+        payload: {
+          units: entry ? normalizeUnits(entry.units, entry.uuid) : UNIT_ORDER.slice(),
+          reachedText: entry ? normalizeReachedText(entry.reachedText) : ""
+        }
+      });
+
+    } else if (payload.command === "saveDisplaySettings") {
+      const entry = contexts.get(msg.context);
+      if (entry) {
+        const unitsGiven = payload.units !== undefined;
+        const unitsOk =
+          !unitsGiven ||
+          (Array.isArray(payload.units) &&
+            payload.units.length > 0 &&
+            payload.units.every(u => UNIT_ORDER.includes(u)));
+        const textOk =
+          payload.reachedText === undefined ||
+          (typeof payload.reachedText === "string" &&
+            payload.reachedText.trim().length <= MAX_REACHED_TEXT);
+
+        if (unitsOk && textOk) {
+          if (unitsGiven) entry.units = normalizeUnits(payload.units, entry.uuid);
+          if (payload.reachedText !== undefined) {
+            entry.reachedText = normalizeReachedText(payload.reachedText);
+          }
+          persistEntry(msg.context);
+          updateContext(msg.context);
+          send({
+            event: "sendToPropertyInspector",
+            context: msg.context,
+            payload: {
+              displaySaved: true,
+              units: entry.units,
+              reachedText: entry.reachedText
+            }
+          });
+        } else {
+          send({
+            event: "sendToPropertyInspector",
+            context: msg.context,
+            payload: {
+              displayError: !unitsOk
+                ? "Select at least one unit to display."
+                : `Text must be at most ${MAX_REACHED_TEXT} characters.`,
+              units: normalizeUnits(entry.units, entry.uuid),
+              reachedText: normalizeReachedText(entry.reachedText)
+            }
+          });
+        }
+      }
+
     } else if (payload.command === "getCountdownSlots") {
       sendSlotsToInspector(msg.context);
 
@@ -410,14 +510,7 @@ function handleMessage(raw) {
 
       if (entry && Number.isInteger(index) && index >= 0 && index < COUNTDOWN_SLOTS.length) {
         entry.slotIndex = index;
-        persistSettings(msg.context, {
-          slotIndex: entry.slotIndex,
-          backgroundColor: entry.backgroundColor,
-          numberColor: entry.numberColor,
-          labelColor: entry.labelColor,
-          labelSize: entry.labelSize,
-          numberSize: entry.numberSize
-        });
+        persistEntry(msg.context);
         updateContext(msg.context);
       }
 
@@ -445,14 +538,7 @@ function handleMessage(raw) {
         const entry = contexts.get(msg.context);
         if (entry) {
           entry.slotIndex = COUNTDOWN_SLOTS.length - 1;
-          persistSettings(msg.context, {
-            slotIndex: entry.slotIndex,
-            backgroundColor: entry.backgroundColor,
-            numberColor: entry.numberColor,
-            labelColor: entry.labelColor,
-            labelSize: entry.labelSize,
-            numberSize: entry.numberSize
-          });
+          persistEntry(msg.context);
         }
 
         updateAll();
@@ -507,14 +593,7 @@ function handleMessage(raw) {
 
         if (next !== entry.slotIndex) {
           entry.slotIndex = next;
-          persistSettings(ctx, {
-            slotIndex: entry.slotIndex,
-            backgroundColor: entry.backgroundColor,
-            numberColor: entry.numberColor,
-            labelColor: entry.labelColor,
-            labelSize: entry.labelSize,
-            numberSize: entry.numberSize
-          });
+          persistEntry(ctx);
         }
       }
 
@@ -534,7 +613,9 @@ function handleMessage(raw) {
       numberColor: settings.numberColor || DEFAULT_COLORS.numberColor,
       labelColor: settings.labelColor || DEFAULT_COLORS.labelColor,
       labelSize: settings.labelSize || DEFAULT_FONT.labelSize,
-      numberSize: settings.numberSize || DEFAULT_FONT.numberSize
+      numberSize: settings.numberSize || DEFAULT_FONT.numberSize,
+      units: normalizeUnits(settings.units, msg.action),
+      reachedText: normalizeReachedText(settings.reachedText)
     });
     updateContext(msg.context);
 
@@ -552,6 +633,8 @@ function handleMessage(raw) {
       entry.labelColor = settings.labelColor || DEFAULT_COLORS.labelColor;
       entry.labelSize = settings.labelSize || DEFAULT_FONT.labelSize;
       entry.numberSize = settings.numberSize || DEFAULT_FONT.numberSize;
+      entry.units = normalizeUnits(settings.units, entry.uuid);
+      entry.reachedText = normalizeReachedText(settings.reachedText);
       updateContext(msg.context);
     }
 
@@ -576,6 +659,45 @@ function valuesForTarget(targetMs) {
   };
 }
 
+function valuesForUnits(targetMs, units) {
+  let rest = Math.floor(Math.max(0, targetMs - Date.now()) / 1000);
+  const values = {};
+  for (const unit of UNIT_ORDER) {
+    if (!units.includes(unit)) continue;
+    values[unit] = Math.floor(rest / UNIT_SECONDS[unit]);
+    rest -= values[unit] * UNIT_SECONDS[unit];
+  }
+  return values;
+}
+
+// e.g. "12d 03:45:10", "12d 03h", "36:20" or just "5" for a single unit.
+function formatUnits(values, units) {
+  const pad = n => String(n).padStart(2, "0");
+  if (units.length === 1) return String(values[units[0]]);
+
+  const hasDays = units[0] === "days";
+  const rest = hasDays ? units.slice(1) : units;
+  const idx = rest.map(u => UNIT_ORDER.indexOf(u));
+  const contiguous = rest.length >= 2 && idx.every((v, i) => i === 0 || v === idx[i - 1] + 1);
+  const parts = [];
+
+  if (hasDays) parts.push(`${values.days}d`);
+  if (contiguous) {
+    parts.push(rest.map((u, i) => (i === 0 && !hasDays ? String(values[u]) : pad(values[u]))).join(":"));
+  } else {
+    rest.forEach((u, i) => {
+      const v = i === 0 && !hasDays ? String(values[u]) : pad(values[u]);
+      parts.push(`${v}${u[0]}`);
+    });
+  }
+  return parts.join(" ");
+}
+
+function labelForUnits(units) {
+  if (units.length === 1) return UNIT_LABELS[units[0]];
+  return units.map(u => UNIT_SHORT_LABELS[u]).join(" : ");
+}
+
 function updateContext(context) {
   const entry = contexts.get(context);
   if (!entry) return;
@@ -594,33 +716,51 @@ function updateContext(context) {
     numberSize: entry.numberSize || DEFAULT_FONT.numberSize
   };
 
-  const v = valuesForTarget(getSlotTargetMs(entry.slotIndex));
+  const targetMs = getSlotTargetMs(entry.slotIndex);
+  const reachedText = normalizeReachedText(entry.reachedText);
+  const reached = reachedText !== "" && targetMs - Date.now() <= 0;
   let display;
+  let label = part.label;
 
-  switch (part.kind) {
-    case "days":
-      display = String(v.days);
-      break;
-    case "hours":
-      display = String(v.hours).padStart(2, "0");
-      break;
-    case "minutes":
-      display = String(v.minutes).padStart(2, "0");
-      break;
-    default:
-      display = String(v.seconds).padStart(2, "0");
+  if (reached) {
+    display = reachedText;
+    label = "";
+  } else if (part.kind === "custom") {
+    const units = normalizeUnits(entry.units, entry.uuid);
+    display = formatUnits(valuesForUnits(targetMs, units), units);
+    label = labelForUnits(units);
+  } else {
+    const v = valuesForTarget(targetMs);
+    switch (part.kind) {
+      case "days":
+        display = String(v.days);
+        break;
+      case "hours":
+        display = String(v.hours).padStart(2, "0");
+        break;
+      case "minutes":
+        display = String(v.minutes).padStart(2, "0");
+        break;
+      default:
+        display = String(v.seconds).padStart(2, "0");
+    }
   }
 
   if (entry.controller === "Keypad") {
-    const labelFontSize = Math.min(font.labelSize, 28);
-    const numberFontSize = Math.min(font.numberSize, 54);
+    const labelFit = fitText(label, Math.min(font.labelSize, 28), 128);
+    const numberFit = fitText(display, Math.min(font.numberSize, 54), 128, reached ? 12 : 14);
+    const fitAttr = fit => (fit.squeeze ? ' textLength="128" lengthAdjust="spacingAndGlyphs"' : "");
 
     const background = `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
+    const labelText = label
+      ? `<text x="72" y="43" text-anchor="middle"${fitAttr(labelFit)} font-family="Arial, sans-serif" font-size="${labelFit.size}" font-weight="600" fill="${colors.labelColor}">${escapeXml(label)}</text>`
+      : "";
+    const numberY = reached ? 72 + Math.round(numberFit.size * 0.35) : 105;
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
         ${background}
-        <text x="72" y="43" text-anchor="middle" font-family="Arial, sans-serif" font-size="${labelFontSize}" font-weight="600" fill="${colors.labelColor}">${part.label}</text>
-        <text x="72" y="105" text-anchor="middle" textLength="120" lengthAdjust="spacingAndGlyphs" font-family="Arial, sans-serif" font-size="${numberFontSize}" font-weight="700" fill="${colors.numberColor}">${display}</text>
+        ${labelText}
+        <text x="72" y="${numberY}" text-anchor="middle"${fitAttr(numberFit)} font-family="Arial, sans-serif" font-size="${numberFit.size}" font-weight="700" fill="${colors.numberColor}">${escapeXml(display)}</text>
       </svg>`;
 
     send({
@@ -647,12 +787,12 @@ function updateContext(context) {
     context,
     payload: {
       label: {
-        value: part.label,
-        font: { size: font.labelSize }
+        value: label,
+        font: { size: fitText(label, font.labelSize, 190).size }
       },
       value: {
         value: display,
-        font: { size: font.numberSize }
+        font: { size: fitText(display, font.numberSize, 190).size }
       }
     }
   });
