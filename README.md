@@ -75,6 +75,8 @@ If left empty, the countdown simply shows zero.
 ## Examples
 <p align="center">
   <img src="imgs/example2.gif" alt="Demo">
+</p>
+<p align="center">
   <img src="imgs/example1.gif" alt="Demo">
 </p>
 
