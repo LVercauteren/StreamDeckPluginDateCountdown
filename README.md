@@ -1,12 +1,73 @@
 # Date Countdown
 
-A Stream Deck plugin that shows a live countdown to a date you choose.
+A Stream Deck plugin that shows a live countdown to a date and time you choose.
 
 ## Features
-- **Days, Hours, Minutes, Seconds** actions for both keypad buttons and dials
-- **Countdown** action: choose any combination of days, hours, minutes and seconds to display ; each selected unit shows its own value (days, hours 0-23, minutes 0-59, seconds 0-59) stacked on its own row on keys (e.g. `120d` / `5h` / `6m` / `30s`) and on dials (the dial title is the countdown name; number size is capped at 25 px and there is no label size/color)
-- Optional custom text (e.g. "Happy New Year!") shown once the target date is reached; leave it empty to show zeros
-- Customizable colors, fonts and keypad background
-- Multiple saved countdown slots (e.g. Holiday, Vacation, Birthday); each button or dial picks one
-- Per-countdown time zone: the target date and time is interpreted in the zone you pick (default: this computer)
 
+- Live countdown to a custom date and time
+- Multiple saved countdowns
+- Per-countdown time zone support
+- Choose what to display:
+  - Days
+  - Hours
+  - Minutes
+  - Seconds
+  - Any combination of those
+- Stack selected units vertically for a cleaner layout
+- Custom text when the countdown reaches zero
+- Works with both keypad buttons and dials
+
+## How to use
+
+1. Add a Date Countdown action to a button or dial.
+2. Open the property inspector.
+3. Select or create a countdown.
+4. Set:
+   - the name
+   - the target date and time
+   - the time zone
+   - the units you want to display
+   - optional custom text for when the countdown is reached
+
+## Countdown actions
+
+The plugin includes five actions:
+- Days
+- Hours
+- Minutes
+- Seconds
+- Countdown
+
+The first four are simple single-unit actions.
+
+The **Countdown** action is the flexible one. It lets you select any combination of days, hours, minutes, and seconds.
+
+Examples:
+- Days only → `120d`
+- Minutes only → `6m`
+- Days + Hours → `120d` and `5h`
+- All units → `120d`, `5h`, `6m`, `30s`
+
+## Time zones
+
+Each countdown can use its own time zone.
+
+This is useful when you want the countdown to match a specific location, such as:
+- your local time
+- a conference time zone
+- a launch time in another country
+
+## Reached text
+
+You can also set a custom message that appears when the countdown reaches zero, for example:
+- `Happy New Year!`
+- `It’s here!`
+- `Launch day!`
+
+If left empty, the countdown simply shows zero.
+
+## Notes
+
+- Existing countdowns without a time zone still work and use the local time zone.
+- The legacy single-unit actions still behave as before.
+- If you want multiple units in one display, use the **Countdown** action.
