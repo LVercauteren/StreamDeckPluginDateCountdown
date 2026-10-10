@@ -5,6 +5,7 @@ const path = require("path");
 
 const DEFAULT_TARGET_MS = Date.parse("2026-11-04T15:00:00-08:00");
 const TARGET_FILE = path.join(__dirname, "target-date.json");
+const COUNTDOWN_FILE = path.join(__dirname, "countdowns.json");
 const FONT_FILE = path.join(__dirname, "font-settings.json");
 const COLOR_FILE = path.join(__dirname, "color-settings.json");
 
@@ -31,7 +32,6 @@ let KEYPAD_BACKGROUND = null;
 
 loadKeypadBackground();
 
-let TARGET_MS = loadTargetDate();
 let pluginId = null;
 
 const PARTS = {
@@ -120,17 +120,71 @@ function loadColorSettings() {
 
 loadColorSettings();
 
-function loadTargetDate() {
+// ---------------------------------------------------------------------------
+// Countdown slots (global list, each button/dial picks one by index)
+// ---------------------------------------------------------------------------
+
+function loadLegacyTargetMs() {
   try {
     const data = JSON.parse(fs.readFileSync(TARGET_FILE, "utf8"));
     const savedTarget = Date.parse(data.targetDate || "");
+    if (Number.isFinite(savedTarget) && savedTarget > 0) return savedTarget;
+  } catch { }
+  return DEFAULT_TARGET_MS;
+}
 
-    if (Number.isFinite(savedTarget) && savedTarget > 0) {
-      return savedTarget;
+function defaultSlots() {
+  return [
+    { name: "Countdown", targetDate: new Date(loadLegacyTargetMs()).toISOString() }
+  ];
+}
+
+let COUNTDOWN_SLOTS = [];
+
+function loadCountdownSlots() {
+  try {
+    const data = JSON.parse(fs.readFileSync(COUNTDOWN_FILE, "utf8"));
+    if (Array.isArray(data.slots)) {
+      const valid = data.slots
+        .filter(slot =>
+          slot &&
+          typeof slot === "object" &&
+          Number.isFinite(Date.parse(slot.targetDate || ""))
+        )
+        .map((slot, i) => ({
+          name: String(slot.name || "").trim() || `Slot ${i + 1}`,
+          targetDate: new Date(Date.parse(slot.targetDate)).toISOString()
+        }));
+      if (valid.length > 0) {
+        COUNTDOWN_SLOTS = valid;
+        return;
+      }
     }
   } catch { }
 
-  return DEFAULT_TARGET_MS;
+  COUNTDOWN_SLOTS = defaultSlots();
+}
+
+function saveCountdownSlots() {
+  fs.writeFileSync(
+    COUNTDOWN_FILE,
+    JSON.stringify({ slots: COUNTDOWN_SLOTS }, null, 2),
+    "utf8"
+  );
+}
+
+loadCountdownSlots();
+
+function clampSlotIndex(index) {
+  const n = Number(index);
+  if (!Number.isInteger(n) || n < 0 || n >= COUNTDOWN_SLOTS.length) return 0;
+  return n;
+}
+
+function getSlotTargetMs(index) {
+  const slot = COUNTDOWN_SLOTS[clampSlotIndex(index)];
+  const ms = slot ? Date.parse(slot.targetDate) : NaN;
+  return Number.isFinite(ms) ? ms : DEFAULT_TARGET_MS;
 }
 
 class SimpleWebSocket {
@@ -266,7 +320,6 @@ class SimpleWebSocket {
 let ws = null;
 let contexts = new Map();
 let timer = null;
-let pendingInspectorContext = null;
 
 function send(obj) {
   if (ws) ws.sendText(JSON.stringify(obj));
@@ -287,7 +340,6 @@ function startConnection() {
     `ws://127.0.0.1:${port}`,
     () => {
       send({ event: registerEvent, uuid: pluginId });
-      send({ event: "getGlobalSettings", context: pluginId });
     },
     handleMessage,
     () => {
@@ -299,6 +351,26 @@ function startConnection() {
   ws.connect();
 }
 
+function sendSlotsToInspector(context) {
+  const entry = contexts.get(context);
+  send({
+    event: "sendToPropertyInspector",
+    context,
+    payload: {
+      slots: COUNTDOWN_SLOTS,
+      selectedIndex: entry ? clampSlotIndex(entry.slotIndex) : 0
+    }
+  });
+}
+
+function persistSlotIndex(context, slotIndex) {
+  send({
+    event: "setSettings",
+    context,
+    payload: { slotIndex }
+  });
+}
+
 function handleMessage(raw) {
   let msg;
   try {
@@ -307,41 +379,8 @@ function handleMessage(raw) {
     return;
   }
 
-  if (msg.event === "didReceiveGlobalSettings") {
-    const settings = msg.payload?.settings || {};
-    require("fs").appendFileSync(
-      require("path").join(__dirname, "settings-debug.txt"),
-      new Date().toISOString() + " " +
-      JSON.stringify(settings) + "\r\n"
-    );
-    process.stderr.write(
-      "COUNTDOWN SETTINGS RECEIVED: " +
-      JSON.stringify(settings) + "\n"
-    );
-    TARGET_MS = loadTargetDate();
-
-    updateAll();
-
-    if (pendingInspectorContext) {
-      send({
-        event: "sendToPropertyInspector",
-        context: pendingInspectorContext,
-        payload: {
-          targetDate: new Date(TARGET_MS).toISOString()
-        }
-      });
-      pendingInspectorContext = null;
-    }
-
-  } else if (msg.event === "sendToPlugin") {
+  if (msg.event === "sendToPlugin") {
     const payload = msg.payload || {};
-    process.stderr.write(
-      "COUNTDOWN MESSAGE RECEIVED: " + JSON.stringify(msg) + "\n"
-    );
-    require("fs").appendFileSync(
-      require("path").join(__dirname, "settings-debug.txt"),
-      "PLUGIN MESSAGE: " + JSON.stringify(msg) + "\r\n"
-    );
 
     if (payload.command === "getBackgroundSettings") {
       send({
@@ -522,49 +561,99 @@ function handleMessage(raw) {
         });
       }
 
-    } else if (payload.command === "getTargetDate") {
-      pendingInspectorContext = msg.context;
-      TARGET_MS = loadTargetDate();
+    } else if (payload.command === "getCountdownSlots") {
+      sendSlotsToInspector(msg.context);
 
-      send({
-        event: "sendToPropertyInspector",
-        context: pendingInspectorContext,
-        payload: {
-          targetDate: new Date(TARGET_MS).toISOString()
-        }
-      });
+    } else if (payload.command === "selectCountdownSlot") {
+      const index = Number(payload.index);
+      const entry = contexts.get(msg.context);
 
-      pendingInspectorContext = null;
+      if (entry && Number.isInteger(index) && index >= 0 && index < COUNTDOWN_SLOTS.length) {
+        entry.slotIndex = index;
+        persistSlotIndex(msg.context, index);
+        updateContext(msg.context);
+      }
 
-    } else {
-      const savedTarget = Date.parse(payload.targetDate || "");
+      sendSlotsToInspector(msg.context);
 
-      if (Number.isFinite(savedTarget) && savedTarget > 0) {
-        TARGET_MS = savedTarget;
+    } else if (payload.command === "addCountdownSlot") {
+      const ms = Date.parse(payload.targetDate || "");
 
-        fs.writeFileSync(
-          TARGET_FILE,
-          JSON.stringify({
-            targetDate: new Date(TARGET_MS).toISOString()
-          }, null, 2),
-          "utf8"
-        );
-
-        require("fs").appendFileSync(
-          require("path").join(__dirname, "settings-debug.txt"),
-          "ABOUT TO SAVE: " + new Date(TARGET_MS).toISOString() + "\r\n"
-        );
-
+      if (!Number.isFinite(ms)) {
         send({
-          event: "setGlobalSettings",
-          context: pluginId,
-          payload: {
-            targetDate: new Date(TARGET_MS).toISOString()
-          }
+          event: "sendToPropertyInspector",
+          context: msg.context,
+          payload: { slotError: "Choose a valid date." }
         });
+      } else {
+        const name = String(payload.name || "").trim() || `Slot ${COUNTDOWN_SLOTS.length + 1}`;
+        COUNTDOWN_SLOTS.push({ name, targetDate: new Date(ms).toISOString() });
+        saveCountdownSlots();
+
+        // Make this button use the newly created slot.
+        const entry = contexts.get(msg.context);
+        if (entry) {
+          entry.slotIndex = COUNTDOWN_SLOTS.length - 1;
+          persistSlotIndex(msg.context, entry.slotIndex);
+        }
 
         updateAll();
+        sendSlotsToInspector(msg.context);
       }
+
+    } else if (payload.command === "saveCountdownSlot") {
+      const index = Number(payload.index);
+      const ms = Date.parse(payload.targetDate || "");
+
+      if (!Number.isInteger(index) || index < 0 || index >= COUNTDOWN_SLOTS.length || !Number.isFinite(ms)) {
+        send({
+          event: "sendToPropertyInspector",
+          context: msg.context,
+          payload: { slotError: "Could not save that slot." }
+        });
+      } else {
+        COUNTDOWN_SLOTS[index] = {
+          name: String(payload.name || "").trim() || `Slot ${index + 1}`,
+          targetDate: new Date(ms).toISOString()
+        };
+        saveCountdownSlots();
+        updateAll();
+        sendSlotsToInspector(msg.context);
+      }
+
+    } else if (payload.command === "deleteCountdownSlot") {
+      const index = Number(payload.index);
+
+      if (!Number.isInteger(index) || index < 0 || index >= COUNTDOWN_SLOTS.length) {
+        return;
+      }
+
+      if (COUNTDOWN_SLOTS.length <= 1) {
+        send({
+          event: "sendToPropertyInspector",
+          context: msg.context,
+          payload: { slotError: "You need at least one countdown slot." }
+        });
+        return;
+      }
+
+      COUNTDOWN_SLOTS.splice(index, 1);
+      saveCountdownSlots();
+
+      // Re-point any buttons that used the deleted slot or a later one.
+      for (const [ctx, entry] of contexts.entries()) {
+        let next = entry.slotIndex;
+        if (next === index) next = 0;
+        else if (next > index) next -= 1;
+
+        if (next !== entry.slotIndex) {
+          entry.slotIndex = next;
+          persistSlotIndex(ctx, next);
+        }
+      }
+
+      updateAll();
+      sendSlotsToInspector(msg.context);
     }
 
   } else if (msg.event === "willAppear") {
@@ -572,12 +661,20 @@ function handleMessage(raw) {
 
     contexts.set(msg.context, {
       uuid: msg.action,
-      controller: msg.payload?.controller || "Encoder"
+      controller: msg.payload?.controller || "Encoder",
+      slotIndex: clampSlotIndex(msg.payload?.settings?.slotIndex)
     });
     updateContext(msg.context);
 
     if (!timer) {
       timer = setInterval(updateAll, 250);
+    }
+
+  } else if (msg.event === "didReceiveSettings") {
+    const entry = contexts.get(msg.context);
+    if (entry) {
+      entry.slotIndex = clampSlotIndex(msg.payload?.settings?.slotIndex);
+      updateContext(msg.context);
     }
 
   } else if (msg.event === "willDisappear") {
@@ -590,8 +687,8 @@ function handleMessage(raw) {
   }
 }
 
-function values() {
-  const remaining = Math.max(0, TARGET_MS - Date.now());
+function valuesForTarget(targetMs) {
+  const remaining = Math.max(0, targetMs - Date.now());
   const total = Math.floor(remaining / 1000);
   return {
     days: Math.floor(total / 86400),
@@ -616,7 +713,7 @@ function updateContext(context) {
     ? (KEYPAD_FONT[entry.uuid] || DIAL_FONT)
     : DIAL_FONT;
 
-  const v = values();
+  const v = valuesForTarget(getSlotTargetMs(entry.slotIndex));
   let display;
 
   switch (part.kind) {
