@@ -75,6 +75,6 @@ If left empty, the countdown simply shows zero.
 ## Examples
 ![Plugin demo](imgs/example2.gif)
 ![Plugin demo](imgs/example1.gif)
-![alt text](imgs/example6.png)
-![alt text](imgs/example4.png)
-![alt text](imgs/example5.png)
+![Demo](imgs/example6.png)
+![Demo](imgs/example4.png)
+![Demo](imgs/example5.png)
