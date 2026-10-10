@@ -86,4 +86,4 @@ Settings:
 <img src="./imgs/example4.png" alt="Demo">
 
 
-[Buy me a beer](https://buymeacoffee.com/LVercauteren)
+[![Buy me a beer](https://img.shields.io/badge/Buy%20me%20a%20beer-%23FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/LVercauteren)
