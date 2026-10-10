@@ -78,7 +78,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "countdown.json"
+        "layout": "countdown-stack.json"
       },
       "States": [
         {

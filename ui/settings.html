@@ -246,84 +246,47 @@
 
     .unit-list {
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+      flex-wrap: nowrap;
+      gap: 0;
     }
 
-    .unit-option {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
+    .unit-btn {
+      flex: 1 1 0;
+      margin: 0;
+      padding: 6px 4px;
       border: 1px solid #555558;
-      border-radius: 3px;
-      background: #34343a;
+      border-left-width: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #8a8a90;
+      font-weight: 400;
       cursor: pointer;
       user-select: none;
     }
 
-    .unit-option:hover {
+    .unit-btn:first-child {
+      border-left-width: 1px;
+      border-radius: 3px 0 0 3px;
+    }
+
+    .unit-btn:last-child {
+      border-radius: 0 3px 3px 0;
+    }
+
+    .unit-btn:hover {
       border-color: #8a8a90;
     }
 
-    .unit-option:focus-within {
+    .unit-btn:focus-visible {
       outline: 2px solid #4a90e2;
       outline-offset: 1px;
     }
 
-    .unit-option input[type="checkbox"] {
-      -webkit-appearance: none;
-      appearance: none;
-      position: relative;
-      flex: none;
-      width: 16px;
-      height: 16px;
-      margin: 0;
-      border: 2px solid #9a9aa0;
-      border-radius: 3px;
-      background: transparent;
-      cursor: pointer;
-    }
-
-    .unit-option input[type="checkbox"]:checked {
+    .unit-btn.selected {
       background: #4a90e2;
       border-color: #4a90e2;
-    }
-
-    .unit-option input[type="checkbox"]:checked::after {
-      content: "";
-      position: absolute;
-      left: 4px;
-      top: 0;
-      width: 4px;
-      height: 9px;
-      border: solid #fff;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-
-    .unit-preview {
-      margin: 6px 0 0;
-      padding: 4px 8px;
-      display: inline-block;
-      background: #111827;
-      border-radius: 3px;
-      font-family: Arial, sans-serif;
-      line-height: 1.2;
-      text-align: left;
-    }
-
-    .unit-preview div {
       color: #ffffff;
       font-weight: 700;
-      font-size: 12px;
-      white-space: pre;
-    }
-
-    .unit-preview span {
-      color: #d8d8dc;
-      font-weight: 600;
-      font-size: 9px;
     }
   </style>
 </head>
@@ -374,12 +337,11 @@
       <hr>
       <h3>Display</h3>
       <div class="compact-section unit-list">
-        <label class="unit-option"><input id="unitDays" type="checkbox" value="days" checked><span>Days</span></label>
-        <label class="unit-option"><input id="unitHours" type="checkbox" value="hours" checked><span>Hours</span></label>
-        <label class="unit-option"><input id="unitMinutes" type="checkbox" value="minutes" checked><span>Minutes</span></label>
-        <label class="unit-option"><input id="unitSeconds" type="checkbox" value="seconds" checked><span>Seconds</span></label>
+        <button id="unitDays" type="button" class="unit-btn selected" data-unit="days" aria-pressed="true">Days</button>
+        <button id="unitHours" type="button" class="unit-btn selected" data-unit="hours" aria-pressed="true">Hours</button>
+        <button id="unitMinutes" type="button" class="unit-btn selected" data-unit="minutes" aria-pressed="true">Minutes</button>
+        <button id="unitSeconds" type="button" class="unit-btn selected" data-unit="seconds" aria-pressed="true">Seconds</button>
       </div>
-      <div id="unitPreview" class="unit-preview"></div>
       <div id="unitError" class="inline-error"></div>
     </div>
 
@@ -390,8 +352,10 @@
     <hr>
     <h3>Countdown Font Size</h3>
     <div class="compact-section">
-      <label for="labelSize">Label size: <span id="labelSizeValue">18</span> px</label>
-      <input id="labelSize" type="range" min="12" max="28" value="18">
+      <div id="labelSizeRow">
+        <label for="labelSize">Label size: <span id="labelSizeValue">18</span> px</label>
+        <input id="labelSize" type="range" min="12" max="28" value="18">
+      </div>
       <label for="numberSize">Number size: <span id="numberSizeValue">40</span> px</label>
       <input id="numberSize" type="range" min="12" max="54" value="40">
     </div>
@@ -408,7 +372,7 @@
           <label for="numberColor">Number:</label>
           <input id="numberColor" type="color" value="#FFFFFF">
         </div>
-        <div class="color-inline-item">
+        <div id="labelColorItem" class="color-inline-item">
           <label for="labelColor">Label:</label>
           <input id="labelColor" type="color" value="#D8D8DC">
         </div>
@@ -436,7 +400,6 @@
 
     const inlineErrorEl = $("inlineError");
     const unitErrorEl = $("unitError");
-    const unitPreviewEl = $("unitPreview");
     const slotSelect = $("slotSelect");
     const slotName = $("slotName");
     const slotDate = $("slotDate");
@@ -472,25 +435,27 @@
       return currentActionUUID === CUSTOM_ACTION;
     }
 
-    function renderUnitPreview() {
-      const sample = { days: 120, hours: 5, minutes: 6, seconds: 30 };
-      const chosen = unitBoxes.filter(b => b.checked).map(b => b.value);
-      unitPreviewEl.innerHTML = "";
-      chosen.forEach(u => {
-        const row = document.createElement("div");
-        const v = u !== "days" && chosen.length > 1 ? String(sample[u]).padStart(2, "0") : String(sample[u]);
-        row.textContent = v.padStart(3, " ");
-        const suffix = document.createElement("span");
-        suffix.textContent = u[0];
-        row.appendChild(suffix);
-        unitPreviewEl.appendChild(row);
-      });
+    function selectedUnits() {
+      return unitBoxes.filter(b => b.classList.contains("selected")).map(b => b.dataset.unit);
     }
 
     function setUnitBoxes(units) {
       lastUnits = units;
-      unitBoxes.forEach(box => { box.checked = units.includes(box.value); });
-      renderUnitPreview();
+      unitBoxes.forEach(box => {
+        const on = units.includes(box.dataset.unit);
+        box.classList.toggle("selected", on);
+        box.setAttribute("aria-pressed", String(on));
+      });
+    }
+
+    // The Countdown action has no label (fixed units suffix) and a smaller number size range.
+    function applyActionFontLimits() {
+      const custom = isCustomAction();
+      $("labelSizeRow").classList.toggle("hidden", custom);
+      $("labelColorItem").classList.toggle("hidden", custom);
+      numberSize.max = custom ? 25 : 54;
+      if (Number(numberSize.value) > Number(numberSize.max)) numberSize.value = numberSize.max;
+      numberSizeValue.textContent = numberSize.value;
     }
 
     const ACTION_NAMES = {
@@ -775,6 +740,7 @@
 
       applyControllerLayout();
       $("displayOnly").classList.toggle("hidden", !isCustomAction());
+      applyActionFontLimits();
 
       if (currentActionUUID) {
         const actionName = ACTION_NAMES[currentActionUUID] || "Countdown";
@@ -853,8 +819,8 @@
         }
 
         if (payload.numberSize !== undefined) {
-          numberSize.value = payload.numberSize;
-          numberSizeValue.textContent = payload.numberSize;
+          numberSize.value = Math.min(payload.numberSize, Number(numberSize.max));
+          numberSizeValue.textContent = numberSize.value;
         }
       };
 
@@ -868,7 +834,7 @@
         command: "saveFontSettings",
         action: currentActionUUID,
         controller: currentController,
-        labelSize: Number(labelSize.value),
+        ...(isCustomAction() ? {} : { labelSize: Number(labelSize.value) }),
         numberSize: Number(numberSize.value)
       });
     }, 100);
@@ -908,20 +874,20 @@
         reachedText: reachedText.value.trim()
       };
       if (isCustomAction()) {
-        message.units = unitBoxes.filter(box => box.checked).map(box => box.value);
+        message.units = selectedUnits();
       }
       sendCommand(message);
     }
 
     unitBoxes.forEach(box => {
-      box.addEventListener("change", () => {
-        if (!unitBoxes.some(b => b.checked)) {
+      box.addEventListener("click", () => {
+        box.classList.toggle("selected");
+        if (selectedUnits().length === 0) {
           setUnitBoxes(lastUnits);
           addStatus("Select at least one unit to display.", "error", unitErrorEl);
           return;
         }
-        lastUnits = unitBoxes.filter(b => b.checked).map(b => b.value);
-        renderUnitPreview();
+        setUnitBoxes(selectedUnits());
         saveDisplay();
       });
     });
