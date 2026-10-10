@@ -4,10 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const DEFAULT_TARGET_MS = Date.UTC(new Date().getUTCFullYear() + 1, 0, 1);
-const TARGET_FILE = path.join(__dirname, "target-date.json");
 const COUNTDOWN_FILE = path.join(__dirname, "countdowns.json");
-const FONT_FILE = path.join(__dirname, "font-settings.json");
-const COLOR_FILE = path.join(__dirname, "color-settings.json");
 
 const DEFAULT_COLORS = {
   backgroundColor: "#111827",
@@ -20,18 +17,6 @@ const DEFAULT_FONT = {
   numberSize: 40
 };
 
-let DIAL_COLORS = { ...DEFAULT_COLORS };
-let KEYPAD_COLORS = {};
-let DIAL_FONT = { ...DEFAULT_FONT };
-let KEYPAD_FONT = {};
-
-const BACKGROUND_FILE = path.join(__dirname, "keypad-background.json");
-const MAX_BACKGROUND_SIZE = 2 * 1024 * 1024;
-
-let KEYPAD_BACKGROUND = null;
-
-loadKeypadBackground();
-
 let pluginId = null;
 
 const PARTS = {
@@ -41,101 +26,13 @@ const PARTS = {
   "com.lvercauteren.datecountdown.seconds": { label: "SECONDS", kind: "seconds" }
 };
 
-function loadKeypadBackground() {
-  try {
-    const data = JSON.parse(fs.readFileSync(BACKGROUND_FILE, "utf8"));
-
-    if (
-      ["image/png", "image/jpeg", "image/webp"].includes(data.mime) &&
-      typeof data.base64 === "string" &&
-      data.base64.length > 0 &&
-      data.base64.length <= Math.ceil(MAX_BACKGROUND_SIZE * 4 / 3)
-    ) {
-      KEYPAD_BACKGROUND = data;
-      return;
-    }
-  } catch { }
-
-  KEYPAD_BACKGROUND = null;
-}
-
-function loadFontSettings() {
-  try {
-    const data = JSON.parse(fs.readFileSync(FONT_FILE, "utf8"));
-
-    if (data.dials && typeof data.dials === "object") {
-      const labelSize = Number(data.dials.labelSize);
-      const numberSize = Number(data.dials.numberSize);
-      if (
-        Number.isFinite(labelSize) &&
-        labelSize >= 12 && labelSize <= 60 &&
-        Number.isFinite(numberSize) &&
-        numberSize >= 12 && numberSize <= 60
-      ) {
-        DIAL_FONT = { labelSize, numberSize };
-      }
-    }
-
-    if (data.keypad && typeof data.keypad === "object") {
-      const loadedKeypadFont = {};
-      for (const [action, values] of Object.entries(data.keypad)) {
-        if (!values || typeof values !== "object") continue;
-        const labelSize = Number(values.labelSize);
-        const numberSize = Number(values.numberSize);
-        if (
-          Number.isFinite(labelSize) &&
-          labelSize >= 12 && labelSize <= 60 &&
-          Number.isFinite(numberSize) &&
-          numberSize >= 12 && numberSize <= 60
-        ) {
-          loadedKeypadFont[action] = { labelSize, numberSize };
-        }
-      }
-      KEYPAD_FONT = loadedKeypadFont;
-    }
-  } catch {
-    DIAL_FONT = { ...DEFAULT_FONT };
-    KEYPAD_FONT = {};
-  }
-}
-
-loadFontSettings();
-
-function loadColorSettings() {
-  try {
-    const data = JSON.parse(fs.readFileSync(COLOR_FILE, "utf8"));
-
-    if (data.dials && typeof data.dials === "object") {
-      DIAL_COLORS = { ...DEFAULT_COLORS, ...data.dials };
-    }
-
-    if (data.keypad && typeof data.keypad === "object") {
-      KEYPAD_COLORS = data.keypad;
-    }
-  } catch {
-    DIAL_COLORS = { ...DEFAULT_COLORS };
-    KEYPAD_COLORS = {};
-  }
-}
-
-loadColorSettings();
-
 // ---------------------------------------------------------------------------
 // Countdown slots (global list, each button/dial picks one by index)
 // ---------------------------------------------------------------------------
 
-function loadLegacyTargetMs() {
-  try {
-    const data = JSON.parse(fs.readFileSync(TARGET_FILE, "utf8"));
-    const savedTarget = Date.parse(data.targetDate || "");
-    if (Number.isFinite(savedTarget) && savedTarget > 0) return savedTarget;
-  } catch { }
-  return DEFAULT_TARGET_MS;
-}
-
 function defaultSlots() {
   return [
-    { name: "Countdown", targetDate: new Date(loadLegacyTargetMs()).toISOString() }
+    { name: "Countdown", targetDate: new Date(DEFAULT_TARGET_MS).toISOString() }
   ];
 }
 
@@ -363,11 +260,11 @@ function sendSlotsToInspector(context) {
   });
 }
 
-function persistSlotIndex(context, slotIndex) {
+function persistSettings(context, settings) {
   send({
     event: "setSettings",
     context,
-    payload: { slotIndex }
+    payload: settings
   });
 }
 
@@ -382,94 +279,19 @@ function handleMessage(raw) {
   if (msg.event === "sendToPlugin") {
     const payload = msg.payload || {};
 
-    if (payload.command === "getBackgroundSettings") {
+    if (payload.command === "getColorSettings") {
+      const entry = contexts.get(msg.context);
       send({
         event: "sendToPropertyInspector",
         context: msg.context,
         payload: {
-          backgroundDataUrl: KEYPAD_BACKGROUND
-            ? `data:${KEYPAD_BACKGROUND.mime};base64,${KEYPAD_BACKGROUND.base64}`
-            : null
-        }
-      });
-
-    } else if (payload.command === "saveBackground") {
-      const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]*={0,2})$/.exec(
-        payload.backgroundDataUrl || ""
-      );
-
-      if (!match) {
-        send({
-          event: "sendToPropertyInspector",
-          context: msg.context,
-          payload: { backgroundError: "Choose a valid PNG, JPG, or WebP image." }
-        });
-      } else {
-        const imageBuffer = Buffer.from(match[2], "base64");
-
-        if (
-          imageBuffer.length === 0 ||
-          imageBuffer.length > MAX_BACKGROUND_SIZE
-        ) {
-          send({
-            event: "sendToPropertyInspector",
-            context: msg.context,
-            payload: { backgroundError: "The image must be smaller than 2 MB." }
-          });
-        } else {
-          KEYPAD_BACKGROUND = {
-            mime: match[1],
-            base64: imageBuffer.toString("base64")
-          };
-
-          try {
-            fs.writeFileSync(
-              BACKGROUND_FILE,
-              JSON.stringify(KEYPAD_BACKGROUND),
-              "utf8"
-            );
-          } catch (error) {
-            send({
-              event: "sendToPropertyInspector",
-              context: msg.context,
-              payload: { backgroundError: "Could not save the image: " + error.message }
-            });
-            return;
-          }
-
-          updateAll();
-
-          send({
-            event: "sendToPropertyInspector",
-            context: msg.context,
-            payload: { backgroundSaved: true }
-          });
-        }
-      }
-
-    } else if (payload.command === "resetBackground") {
-      try {
-        fs.unlinkSync(BACKGROUND_FILE);
-      } catch (error) {
-        if (error.code !== "ENOENT") throw error;
-      }
-
-      KEYPAD_BACKGROUND = null;
-      updateAll();
-
-      send({
-        event: "sendToPropertyInspector",
-        context: msg.context,
-        payload: { backgroundReset: true }
-      });
-
-    } else if (payload.command === "getColorSettings") {
-      send({
-        event: "sendToPropertyInspector",
-        context: msg.context,
-        payload: {
-          dialColors: DIAL_COLORS,
-          keypadColors: KEYPAD_COLORS
+          colors: entry
+            ? {
+              backgroundColor: entry.backgroundColor || DEFAULT_COLORS.backgroundColor,
+              numberColor: entry.numberColor || DEFAULT_COLORS.numberColor,
+              labelColor: entry.labelColor || DEFAULT_COLORS.labelColor
+            }
+            : DEFAULT_COLORS
         }
       });
 
@@ -483,31 +305,30 @@ function handleMessage(raw) {
         validColor(colors.numberColor) &&
         validColor(colors.labelColor)
       ) {
-        const controller = payload.controller;
-        const action = payload.action;
+        const entry = contexts.get(msg.context);
+        if (entry) {
+          entry.backgroundColor = colors.backgroundColor;
+          entry.numberColor = colors.numberColor;
+          entry.labelColor = colors.labelColor;
 
-        if (controller === "Keypad" && PARTS[action]) {
-          KEYPAD_COLORS[action] = { ...colors };
-        } else {
-          DIAL_COLORS = { ...colors };
+          // Persist to Stream Deck settings
+          persistSettings(msg.context, {
+            slotIndex: entry.slotIndex,
+            backgroundColor: entry.backgroundColor,
+            numberColor: entry.numberColor,
+            labelColor: entry.labelColor,
+            labelSize: entry.labelSize,
+            numberSize: entry.numberSize
+          });
+
+          updateContext(msg.context);
+
+          send({
+            event: "sendToPropertyInspector",
+            context: msg.context,
+            payload: { colorsSaved: true }
+          });
         }
-
-        fs.writeFileSync(
-          COLOR_FILE,
-          JSON.stringify({
-            dials: DIAL_COLORS,
-            keypad: KEYPAD_COLORS
-          }, null, 2),
-          "utf8"
-        );
-
-        updateAll();
-
-        send({
-          event: "sendToPropertyInspector",
-          context: msg.context,
-          payload: { colorsSaved: true }
-        });
       } else {
         send({
           event: "sendToPropertyInspector",
@@ -517,27 +338,19 @@ function handleMessage(raw) {
       }
 
     } else if (payload.command === "getFontSettings") {
-      const targetController = payload.controller || "Encoder";
-      const targetAction = payload.action || null;
-      const font =
-        targetController === "Keypad" && targetAction && PARTS[targetAction]
-          ? (KEYPAD_FONT[targetAction] || DIAL_FONT)
-          : DIAL_FONT;
-
+      const entry = contexts.get(msg.context);
       send({
         event: "sendToPropertyInspector",
         context: msg.context,
         payload: {
-          labelSize: font.labelSize,
-          numberSize: font.numberSize
+          labelSize: entry ? (entry.labelSize || DEFAULT_FONT.labelSize) : DEFAULT_FONT.labelSize,
+          numberSize: entry ? (entry.numberSize || DEFAULT_FONT.numberSize) : DEFAULT_FONT.numberSize
         }
       });
 
     } else if (payload.command === "saveFontSettings") {
       const labelSize = Number(payload.labelSize);
       const numberSize = Number(payload.numberSize);
-      const controller = payload.controller || "Encoder";
-      const action = payload.action || null;
 
       if (
         Number.isFinite(labelSize) &&
@@ -545,29 +358,33 @@ function handleMessage(raw) {
         Number.isFinite(numberSize) &&
         numberSize >= 12 && numberSize <= 60
       ) {
-        if (controller === "Keypad" && action && PARTS[action]) {
-          KEYPAD_FONT[action] = { labelSize, numberSize };
-        } else {
-          DIAL_FONT = { labelSize, numberSize };
+        const entry = contexts.get(msg.context);
+        if (entry) {
+          entry.labelSize = labelSize;
+          entry.numberSize = numberSize;
+
+          // Persist to Stream Deck settings
+          persistSettings(msg.context, {
+            slotIndex: entry.slotIndex,
+            backgroundColor: entry.backgroundColor,
+            numberColor: entry.numberColor,
+            labelColor: entry.labelColor,
+            labelSize: entry.labelSize,
+            numberSize: entry.numberSize
+          });
+
+          updateContext(msg.context);
+
+          send({
+            event: "sendToPropertyInspector",
+            context: msg.context,
+            payload: {
+              labelSize,
+              numberSize,
+              fontSaved: true
+            }
+          });
         }
-
-        fs.writeFileSync(
-          FONT_FILE,
-          JSON.stringify({ dials: DIAL_FONT, keypad: KEYPAD_FONT }, null, 2),
-          "utf8"
-        );
-
-        updateAll();
-
-        send({
-          event: "sendToPropertyInspector",
-          context: msg.context,
-          payload: {
-            labelSize,
-            numberSize,
-            fontSaved: true
-          }
-        });
       }
 
     } else if (payload.command === "getCountdownSlots") {
@@ -579,7 +396,14 @@ function handleMessage(raw) {
 
       if (entry && Number.isInteger(index) && index >= 0 && index < COUNTDOWN_SLOTS.length) {
         entry.slotIndex = index;
-        persistSlotIndex(msg.context, index);
+        persistSettings(msg.context, {
+          slotIndex: entry.slotIndex,
+          backgroundColor: entry.backgroundColor,
+          numberColor: entry.numberColor,
+          labelColor: entry.labelColor,
+          labelSize: entry.labelSize,
+          numberSize: entry.numberSize
+        });
         updateContext(msg.context);
       }
 
@@ -603,7 +427,14 @@ function handleMessage(raw) {
         const entry = contexts.get(msg.context);
         if (entry) {
           entry.slotIndex = COUNTDOWN_SLOTS.length - 1;
-          persistSlotIndex(msg.context, entry.slotIndex);
+          persistSettings(msg.context, {
+            slotIndex: entry.slotIndex,
+            backgroundColor: entry.backgroundColor,
+            numberColor: entry.numberColor,
+            labelColor: entry.labelColor,
+            labelSize: entry.labelSize,
+            numberSize: entry.numberSize
+          });
         }
 
         updateAll();
@@ -657,7 +488,14 @@ function handleMessage(raw) {
 
         if (next !== entry.slotIndex) {
           entry.slotIndex = next;
-          persistSlotIndex(ctx, next);
+          persistSettings(ctx, {
+            slotIndex: entry.slotIndex,
+            backgroundColor: entry.backgroundColor,
+            numberColor: entry.numberColor,
+            labelColor: entry.labelColor,
+            labelSize: entry.labelSize,
+            numberSize: entry.numberSize
+          });
         }
       }
 
@@ -668,10 +506,16 @@ function handleMessage(raw) {
   } else if (msg.event === "willAppear") {
     if (!PARTS[msg.action]) return;
 
+    const settings = msg.payload?.settings || {};
     contexts.set(msg.context, {
       uuid: msg.action,
       controller: msg.payload?.controller || "Encoder",
-      slotIndex: clampSlotIndex(msg.payload?.settings?.slotIndex)
+      slotIndex: clampSlotIndex(settings.slotIndex),
+      backgroundColor: settings.backgroundColor || DEFAULT_COLORS.backgroundColor,
+      numberColor: settings.numberColor || DEFAULT_COLORS.numberColor,
+      labelColor: settings.labelColor || DEFAULT_COLORS.labelColor,
+      labelSize: settings.labelSize || DEFAULT_FONT.labelSize,
+      numberSize: settings.numberSize || DEFAULT_FONT.numberSize
     });
     updateContext(msg.context);
 
@@ -682,7 +526,13 @@ function handleMessage(raw) {
   } else if (msg.event === "didReceiveSettings") {
     const entry = contexts.get(msg.context);
     if (entry) {
-      entry.slotIndex = clampSlotIndex(msg.payload?.settings?.slotIndex);
+      const settings = msg.payload?.settings || {};
+      entry.slotIndex = clampSlotIndex(settings.slotIndex);
+      entry.backgroundColor = settings.backgroundColor || DEFAULT_COLORS.backgroundColor;
+      entry.numberColor = settings.numberColor || DEFAULT_COLORS.numberColor;
+      entry.labelColor = settings.labelColor || DEFAULT_COLORS.labelColor;
+      entry.labelSize = settings.labelSize || DEFAULT_FONT.labelSize;
+      entry.numberSize = settings.numberSize || DEFAULT_FONT.numberSize;
       updateContext(msg.context);
     }
 
@@ -714,13 +564,16 @@ function updateContext(context) {
   const part = PARTS[entry.uuid];
   if (!part) return;
 
-  const colors = entry.controller === "Keypad"
-    ? (KEYPAD_COLORS[entry.uuid] || DEFAULT_COLORS)
-    : DIAL_COLORS;
+  const colors = {
+    backgroundColor: entry.backgroundColor || DEFAULT_COLORS.backgroundColor,
+    numberColor: entry.numberColor || DEFAULT_COLORS.numberColor,
+    labelColor: entry.labelColor || DEFAULT_COLORS.labelColor
+  };
 
-  const font = entry.controller === "Keypad"
-    ? (KEYPAD_FONT[entry.uuid] || DIAL_FONT)
-    : DIAL_FONT;
+  const font = {
+    labelSize: entry.labelSize || DEFAULT_FONT.labelSize,
+    numberSize: entry.numberSize || DEFAULT_FONT.numberSize
+  };
 
   const v = valuesForTarget(getSlotTargetMs(entry.slotIndex));
   let display;
@@ -743,14 +596,7 @@ function updateContext(context) {
     const labelFontSize = Math.min(font.labelSize, 28);
     const numberFontSize = Math.min(font.numberSize, 54);
 
-    // Stream Deck's SVG renderer needs the xlink namespace and xlink:href
-    // for embedded images; a plain href is silently ignored.
-    const background = KEYPAD_BACKGROUND
-      ? `
-        <image xlink:href="data:${KEYPAD_BACKGROUND.mime};base64,${KEYPAD_BACKGROUND.base64}" x="0" y="0" width="144" height="144" preserveAspectRatio="xMidYMid slice"/>
-        <rect width="144" height="144" fill="#000000" fill-opacity="0.25"/>
-      `
-      : `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
+    const background = `<rect width="144" height="144" rx="12" fill="${colors.backgroundColor}"/>`;
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
         ${background}
