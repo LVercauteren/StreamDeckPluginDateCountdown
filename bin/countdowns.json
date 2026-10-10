@@ -1,16 +1,16 @@
 {
   "slots": [
     {
-      "name": "WoW Launch",
-      "targetDate": "2026-11-04T15:00:00Z"
-    },
-    {
       "name": "Holiday",
-      "targetDate": "2026-12-25T00:00:00Z"
+      "targetDate": "2026-12-25T00:00:00.000Z"
     },
     {
       "name": "Birthday",
-      "targetDate": "2027-03-15T18:00:00Z"
+      "targetDate": "2027-05-16T10:00:00.000Z"
+    },
+    {
+      "name": "WoW Launch",
+      "targetDate": "2026-11-04T15:00:00.000Z"
     }
   ]
 }

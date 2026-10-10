@@ -1,12 +1,16 @@
 {
   "dials": {
     "labelSize": 18,
-    "numberSize": 50
+    "numberSize": 54
   },
   "keypad": {
     "com.wowforever.countdown.days": {
-      "labelSize": 15,
-      "numberSize": 32
+      "labelSize": 17,
+      "numberSize": 50
+    },
+    "com.wowforever.countdown.seconds": {
+      "labelSize": 18,
+      "numberSize": 50
     }
   }
 }

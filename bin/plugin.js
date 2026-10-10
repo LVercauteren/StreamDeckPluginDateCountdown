@@ -332,7 +332,7 @@ function startConnection() {
   const registerEvent = args[args.indexOf("-registerEvent") + 1];
 
   if (!port || !pluginId || !registerEvent) {
-    process.stderr.write("WoW Forever Countdown: missing Stream Deck startup arguments\n");
+    process.stderr.write("Date Countdown: missing Stream Deck startup arguments\n");
     process.exit(2);
   }
 
