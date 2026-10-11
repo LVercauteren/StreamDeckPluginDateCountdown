@@ -2,32 +2,17 @@
   "slots": [
     {
       "name": "Birthday",
-      "targetDate": "2026-11-01T23:00:00.000Z",
+      "targetDate": "2027-04-04T22:00:00.000Z",
       "timeZone": "local"
     },
     {
-      "name": "Holiday",
+      "name": "Christmas",
       "targetDate": "2026-12-25T00:00:00.000Z",
       "timeZone": "local"
     },
     {
-      "name": "WoW Launch",
-      "targetDate": "2026-11-04T23:00:00.000Z",
-      "timeZone": "local"
-    },
-    {
-      "name": "Test",
-      "targetDate": "2026-11-15T11:00:00.000Z",
-      "timeZone": "local"
-    },
-    {
-      "name": "Hello world",
-      "targetDate": "2026-11-26T11:00:00.000Z",
-      "timeZone": "local"
-    },
-    {
-      "name": "Today",
-      "targetDate": "2026-10-10T21:10:00.000Z",
+      "name": "Product Launch",
+      "targetDate": "2026-10-11T17:30:00.000Z",
       "timeZone": "local"
     }
   ]
