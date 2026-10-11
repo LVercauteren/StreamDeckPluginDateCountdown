@@ -3,7 +3,7 @@
   "Actions": [
     {
       "Name": "Days",
-      "UUID": "com.datecountdown.days",
+      "UUID": "com.date-countdown.days",
       "Icon": "imgs/D",
       "Controllers": [
         "Keypad",
@@ -20,7 +20,7 @@
     },
     {
       "Name": "Hours",
-      "UUID": "com.datecountdown.hours",
+      "UUID": "com.date-countdown.hours",
       "Icon": "imgs/Hr",
       "Controllers": [
         "Keypad",
@@ -37,7 +37,7 @@
     },
     {
       "Name": "Minutes",
-      "UUID": "com.datecountdown.minutes",
+      "UUID": "com.date-countdown.minutes",
       "Icon": "imgs/Min",
       "Controllers": [
         "Keypad",
@@ -54,7 +54,7 @@
     },
     {
       "Name": "Seconds",
-      "UUID": "com.datecountdown.seconds",
+      "UUID": "com.date-countdown.seconds",
       "Icon": "imgs/Sec",
       "Controllers": [
         "Keypad",
@@ -71,7 +71,7 @@
     },
     {
       "Name": "Countdown",
-      "UUID": "com.datecountdown.custom",
+      "UUID": "com.date-countdown.custom",
       "Icon": "imgs/countdown",
       "Controllers": [
         "Keypad",
@@ -104,7 +104,7 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.datecountdown",
+  "UUID": "com.date-countdown",
   "Version": "1.0.0.0",
   "SDKVersion": 2,
   "Software": {
