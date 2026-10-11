@@ -2,7 +2,7 @@
   "slots": [
     {
       "name": "Birthday",
-      "targetDate": "2026-11-04T23:00:00.000Z",
+      "targetDate": "2026-11-01T23:00:00.000Z",
       "timeZone": "local"
     },
     {

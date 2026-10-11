@@ -288,6 +288,66 @@
       color: #ffffff;
       font-weight: 700;
     }
+
+    input[type="datetime-local"] {
+      color-scheme: dark;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.9;
+      filter: invert(1);
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+    }
+
+    /* Date field with a visible calendar icon */
+    .date-field {
+      position: relative;
+    }
+
+    .date-field input {
+      padding-right: 28px;
+    }
+
+    /* Keep the native picker trigger, but make it invisible and cover the icon area */
+    .date-field input::-webkit-calendar-picker-indicator {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 28px;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .date-field .date-icon {
+      position: absolute;
+      top: 50%;
+      right: 7px;
+      width: 14px;
+      height: 14px;
+      transform: translateY(-50%);
+      color: #d8d8dc;
+      pointer-events: none;
+    }
+
+    .date-field:hover .date-icon {
+      color: #ffffff;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg>") center / 16px no-repeat;
+      cursor: pointer;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+      background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg>") center / 16px no-repeat;
+    }
   </style>
 </head>
 
@@ -338,9 +398,12 @@
       <h3>Display</h3>
       <div class="compact-section unit-list">
         <button id="unitDays" type="button" class="unit-btn selected" data-unit="days" aria-pressed="true">Days</button>
-        <button id="unitHours" type="button" class="unit-btn selected" data-unit="hours" aria-pressed="true">Hours</button>
-        <button id="unitMinutes" type="button" class="unit-btn selected" data-unit="minutes" aria-pressed="true">Minutes</button>
-        <button id="unitSeconds" type="button" class="unit-btn selected" data-unit="seconds" aria-pressed="true">Seconds</button>
+        <button id="unitHours" type="button" class="unit-btn selected" data-unit="hours"
+          aria-pressed="true">Hours</button>
+        <button id="unitMinutes" type="button" class="unit-btn selected" data-unit="minutes"
+          aria-pressed="true">Minutes</button>
+        <button id="unitSeconds" type="button" class="unit-btn selected" data-unit="seconds"
+          aria-pressed="true">Seconds</button>
       </div>
       <div id="unitError" class="inline-error"></div>
     </div>
@@ -426,7 +489,7 @@
     const numberColor = $("numberColor");
     const labelColor = $("labelColor");
 
-    const CUSTOM_ACTION = "com.lvercauteren.datecountdown.custom";
+    const CUSTOM_ACTION = "com.date-countdown.custom";
     const unitBoxes = ["unitDays", "unitHours", "unitMinutes", "unitSeconds"].map($);
     const reachedText = $("reachedText");
     let lastUnits = ["days", "hours", "minutes", "seconds"];
@@ -460,10 +523,10 @@
 
     const ACTION_NAMES = {
       [CUSTOM_ACTION]: "Countdown",
-      "com.lvercauteren.datecountdown.days": "Days",
-      "com.lvercauteren.datecountdown.hours": "Hours",
-      "com.lvercauteren.datecountdown.minutes": "Minutes",
-      "com.lvercauteren.datecountdown.seconds": "Seconds"
+      "com.date-countdown.days": "Days",
+      "com.date-countdown.hours": "Hours",
+      "com.date-countdown.minutes": "Minutes",
+      "com.date-countdown.seconds": "Seconds"
     };
 
     let errorTimer = null;

@@ -17,7 +17,7 @@ const DEFAULT_FONT = {
   numberSize: 40
 };
 
-const CUSTOM_UUID = "com.lvercauteren.datecountdown.custom";
+const CUSTOM_UUID = "com.date-countdown.custom";
 const CUSTOM_MAX_NUMBER_SIZE = 25;
 const CUSTOM_DEFAULT_NUMBER_SIZE = 25;
 const SUFFIX_OPACITY = 0.65;
@@ -33,11 +33,11 @@ function numberSizeFor(uuid, value) {
 let pluginId = null;
 
 const PARTS = {
-  "com.lvercauteren.datecountdown.days": { label: "DAYS", kind: "days" },
-  "com.lvercauteren.datecountdown.hours": { label: "HOURS", kind: "hours" },
-  "com.lvercauteren.datecountdown.minutes": { label: "MINUTES", kind: "minutes" },
-  "com.lvercauteren.datecountdown.seconds": { label: "SECONDS", kind: "seconds" },
-  "com.lvercauteren.datecountdown.custom": { label: "COUNTDOWN", kind: "custom" }
+  "com.date-countdown.days": { label: "DAYS", kind: "days" },
+  "com.date-countdown.hours": { label: "HOURS", kind: "hours" },
+  "com.date-countdown.minutes": { label: "MINUTES", kind: "minutes" },
+  "com.date-countdown.seconds": { label: "SECONDS", kind: "seconds" },
+  "com.date-countdown.custom": { label: "COUNTDOWN", kind: "custom" }
 };
 
 const UNIT_ORDER = ["days", "hours", "minutes", "seconds"];
