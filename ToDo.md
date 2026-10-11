@@ -11,6 +11,7 @@
 - [ ] Custom background for Keypads
 - [ ] Custom background when date is reached
 - [ ] More options for when date is reached (change bacground color; text multiple lines, etc.)
+- [ ] On press actions (?)
 
 # Known bugs
 
