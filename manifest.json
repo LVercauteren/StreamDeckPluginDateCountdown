@@ -4,7 +4,7 @@
     {
       "Name": "Days",
       "UUID": "com.lvercauteren.datecountdown.days",
-      "Icon": "imgs/action",
+      "Icon": "imgs/D",
       "Controllers": [
         "Keypad",
         "Encoder"
@@ -14,14 +14,14 @@
       },
       "States": [
         {
-          "Image": "imgs/action"
+          "Image": "imgs/D"
         }
       ]
     },
     {
       "Name": "Hours",
       "UUID": "com.lvercauteren.datecountdown.hours",
-      "Icon": "imgs/action",
+      "Icon": "imgs/Hr",
       "Controllers": [
         "Keypad",
         "Encoder"
@@ -31,14 +31,14 @@
       },
       "States": [
         {
-          "Image": "imgs/action"
+          "Image": "imgs/Hr"
         }
       ]
     },
     {
       "Name": "Minutes",
       "UUID": "com.lvercauteren.datecountdown.minutes",
-      "Icon": "imgs/action",
+      "Icon": "imgs/Min",
       "Controllers": [
         "Keypad",
         "Encoder"
@@ -48,14 +48,14 @@
       },
       "States": [
         {
-          "Image": "imgs/action"
+          "Image": "imgs/Min"
         }
       ]
     },
     {
       "Name": "Seconds",
       "UUID": "com.lvercauteren.datecountdown.seconds",
-      "Icon": "imgs/action",
+      "Icon": "imgs/Sec",
       "Controllers": [
         "Keypad",
         "Encoder"
@@ -65,7 +65,7 @@
       },
       "States": [
         {
-          "Image": "imgs/action"
+          "Image": "imgs/Sec"
         }
       ]
     },
@@ -82,7 +82,7 @@
       },
       "States": [
         {
-          "Image": "imgs/action"
+          "Image": "imgs/countdown"
         }
       ]
     }
