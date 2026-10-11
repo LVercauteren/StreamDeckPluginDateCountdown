@@ -3,7 +3,7 @@
   "Actions": [
     {
       "Name": "Days",
-      "UUID": "com.lvercauteren.datecountdown.days",
+      "UUID": "com.datecountdown.days",
       "Icon": "imgs/D",
       "Controllers": [
         "Keypad",
@@ -20,7 +20,7 @@
     },
     {
       "Name": "Hours",
-      "UUID": "com.lvercauteren.datecountdown.hours",
+      "UUID": "com.datecountdown.hours",
       "Icon": "imgs/Hr",
       "Controllers": [
         "Keypad",
@@ -37,7 +37,7 @@
     },
     {
       "Name": "Minutes",
-      "UUID": "com.lvercauteren.datecountdown.minutes",
+      "UUID": "com.datecountdown.minutes",
       "Icon": "imgs/Min",
       "Controllers": [
         "Keypad",
@@ -54,7 +54,7 @@
     },
     {
       "Name": "Seconds",
-      "UUID": "com.lvercauteren.datecountdown.seconds",
+      "UUID": "com.datecountdown.seconds",
       "Icon": "imgs/Sec",
       "Controllers": [
         "Keypad",
@@ -71,7 +71,7 @@
     },
     {
       "Name": "Countdown",
-      "UUID": "com.lvercauteren.datecountdown.custom",
+      "UUID": "com.datecountdown.custom",
       "Icon": "imgs/countdown",
       "Controllers": [
         "Keypad",
@@ -104,7 +104,7 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.lvercauteren.datecountdown",
+  "UUID": "com.datecountdown",
   "Version": "1.0.0.0",
   "SDKVersion": 2,
   "Software": {
