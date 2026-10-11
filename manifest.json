@@ -93,7 +93,7 @@
   "CodePath": "bin/plugin.js",
   "PropertyInspectorPath": "ui/settings.html",
   "Description": "Live countdown to a configurable date, with Days, Hours, Minutes, Seconds and a customizable Countdown action.",
-  "Icon": "imgs/action",
+  "Icon": "imgs/plugin-icon",
   "Name": "Date Countdown",
   "Nodejs": {
     "Version": "20"
