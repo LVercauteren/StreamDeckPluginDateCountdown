@@ -8,7 +8,7 @@ A Stream Deck plugin that shows a live countdown to a date and time you choose.
 
 Download the latest plugin package from the [Releases](../../releases) page.
 
-- Direct download: [Download latest version](https://github.com/LVercauteren/StreamDeckPluginDateCountdown/releases/download/Plugin/com.date-countdown.streamDeckPlugin)
+- Direct download: [Download latest version](https://github.com/LVercauteren/StreamDeckPluginDateCountdown/releases/download/Latest/com.date-countdown.streamDeckPlugin)
 
 After downloading, double-click the `.streamDeckPlugin` file to install it in Stream Deck.
 
