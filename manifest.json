@@ -3,7 +3,7 @@
   "Actions": [
     {
       "Name": "Days",
-      "UUID": "com.date-countdown.days",
+      "UUID": "com.lorre.date-countdown.days",
       "Icon": "imgs/D",
       "Controllers": [
         "Keypad",
@@ -20,7 +20,7 @@
     },
     {
       "Name": "Hours",
-      "UUID": "com.date-countdown.hours",
+      "UUID": "com.lorre.date-countdown.hours",
       "Icon": "imgs/Hr",
       "Controllers": [
         "Keypad",
@@ -37,7 +37,7 @@
     },
     {
       "Name": "Minutes",
-      "UUID": "com.date-countdown.minutes",
+      "UUID": "com.lorre.date-countdown.minutes",
       "Icon": "imgs/Min",
       "Controllers": [
         "Keypad",
@@ -54,7 +54,7 @@
     },
     {
       "Name": "Seconds",
-      "UUID": "com.date-countdown.seconds",
+      "UUID": "com.lorre.date-countdown.seconds",
       "Icon": "imgs/Sec",
       "Controllers": [
         "Keypad",
@@ -71,7 +71,7 @@
     },
     {
       "Name": "Countdown",
-      "UUID": "com.date-countdown.custom",
+      "UUID": "com.lorre.date-countdown.custom",
       "Icon": "imgs/countdown",
       "Controllers": [
         "Keypad",
@@ -104,7 +104,7 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.date-countdown",
+  "UUID": "com.lorre.date-countdown",
   "Version": "1.0.0.0",
   "SDKVersion": 3,
   "Software": {

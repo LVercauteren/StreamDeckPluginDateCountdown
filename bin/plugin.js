@@ -17,7 +17,7 @@ const DEFAULT_FONT = {
   numberSize: 40
 };
 
-const CUSTOM_UUID = "com.date-countdown.custom";
+const CUSTOM_UUID = "com.lorre.date-countdown.custom";
 const CUSTOM_MAX_NUMBER_SIZE = 25;
 const CUSTOM_DEFAULT_NUMBER_SIZE = 25;
 const SUFFIX_OPACITY = 0.65;
@@ -33,11 +33,11 @@ function numberSizeFor(uuid, value) {
 let pluginId = null;
 
 const PARTS = {
-  "com.date-countdown.days": { label: "DAYS", kind: "days" },
-  "com.date-countdown.hours": { label: "HOURS", kind: "hours" },
-  "com.date-countdown.minutes": { label: "MINUTES", kind: "minutes" },
-  "com.date-countdown.seconds": { label: "SECONDS", kind: "seconds" },
-  "com.date-countdown.custom": { label: "COUNTDOWN", kind: "custom" }
+  "com.lorre.date-countdown.days": { label: "DAYS", kind: "days" },
+  "com.lorre.date-countdown.hours": { label: "HOURS", kind: "hours" },
+  "com.lorre.date-countdown.minutes": { label: "MINUTES", kind: "minutes" },
+  "com.lorre.date-countdown.seconds": { label: "SECONDS", kind: "seconds" },
+  "com.lorre.date-countdown.custom": { label: "COUNTDOWN", kind: "custom" }
 };
 
 const UNIT_ORDER = ["days", "hours", "minutes", "seconds"];

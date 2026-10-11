@@ -12,7 +12,12 @@
     },
     {
       "name": "Product Launch",
-      "targetDate": "2026-10-11T17:30:00.000Z",
+      "targetDate": "2026-11-04T23:00:00.000Z",
+      "timeZone": "local"
+    },
+    {
+      "name": "NewYear",
+      "targetDate": "2026-12-31T23:00:00.000Z",
       "timeZone": "local"
     }
   ]
