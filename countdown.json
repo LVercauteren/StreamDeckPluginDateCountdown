@@ -49,11 +49,6 @@
 			"value": "0",
 			"zOrder": 1
 		}
-	],
-
-	"slots": [
-    { "name": "Holiday", "targetDate": "2026-12-25T00:00:00Z" },
-    { "name": "Vacation", "targetDate": "2026-12-20T00:00:00Z" },
-    { "name": "Birthday", "targetDate": "2027-03-15T18:00:00Z" }
+	]
   ]
 }
